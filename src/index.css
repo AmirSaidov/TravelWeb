@@ -1,59 +1,110 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap");
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  color: #111827;
-  background-color: #f8fafc;
-}
+/* Kyrgyzstan Travel Design System — all colors HSL */
 
-* {
-  box-sizing: border-box;
-}
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 8%;
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: "Manrope", sans-serif;
-  background: radial-gradient(circle at 10% 0%, #e5eef8 0%, #f8fafc 45%, #f9fafb 100%);
-  color: #111827;
-}
+    --surface: 40 30% 98%;
+    --surface-muted: 210 20% 96%;
 
-h1,
-h2,
-h3,
-h4 {
-  font-family: "Sora", sans-serif;
-}
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 8%;
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 8%;
 
-.shell {
-  width: min(1200px, calc(100% - 2rem));
-  margin-inline: auto;
-}
+    /* Deep navy used in headers/hero */
+    --primary: 222 47% 11%;
+    --primary-foreground: 0 0% 100%;
 
-.glass-card {
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.82));
-  box-shadow: 0 24px 40px -26px rgba(15, 23, 42, 0.38);
-  backdrop-filter: blur(8px);
-}
+    /* Brand green — emerald accent */
+    --brand: 160 84% 39%;
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 160 60% 94%;
 
-.fade-rise {
-  animation: fadeRise 0.5s ease;
-}
+    /* Gold accent for ratings & CTAs */
+    --gold: 43 96% 56%;
+    --gold-foreground: 222 47% 8%;
 
-@keyframes fadeRise {
-  from {
-    transform: translateY(16px);
-    opacity: 0;
+    --secondary: 210 30% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 30% 96%;
+    --muted-foreground: 215 16% 45%;
+
+    --accent: 160 60% 94%;
+    --accent-foreground: 160 84% 22%;
+
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 16% 90%;
+    --input: 220 16% 90%;
+    --ring: 160 84% 39%;
+
+    --radius: 1rem;
+
+    --shadow-card: 0 4px 24px -8px hsl(222 47% 11% / 0.08);
+    --shadow-elevated: 0 20px 50px -20px hsl(222 47% 11% / 0.18);
+    --gradient-hero: linear-gradient(180deg, hsl(222 47% 8% / 0.15) 0%, hsl(222 47% 8% / 0.55) 100%);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5% 26%;
+    --sidebar-primary: 240 6% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 5% 96%;
+    --sidebar-accent-foreground: 240 6% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
   }
 
-  to {
-    transform: translateY(0);
-    opacity: 1;
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 0 0% 98%;
+    --surface: 222 47% 8%;
+    --surface-muted: 222 30% 12%;
+    --card: 222 47% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 222 47% 9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 222 30% 14%;
+    --accent-foreground: 0 0% 98%;
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
   }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { scroll-behavior: smooth; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Fraunces', 'Inter', serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .container-page { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-elevated { box-shadow: var(--shadow-elevated); }
+  .gradient-hero-overlay { background: var(--gradient-hero); }
+  .text-balance { text-wrap: balance; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
 }
