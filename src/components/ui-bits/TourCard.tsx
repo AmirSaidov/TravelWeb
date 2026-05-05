@@ -24,10 +24,11 @@ export const TourCard = ({ tour, layout = "vertical" }: { tour: Tour; layout?: "
         <button
           type="button"
           onClick={(e) => { e.preventDefault(); toggleSave(tour.id); }}
-          className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-foreground shadow-sm backdrop-blur transition hover:bg-white"
+          className="group/save absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-foreground shadow-sm backdrop-blur transition-all duration-300 hover:scale-110 hover:bg-white active:scale-95"
           aria-label="Save tour"
         >
-          <Heart className={cn("h-4 w-4", saved && "fill-destructive text-destructive")} />
+          {saved && <span className="absolute inset-0 rounded-full bg-destructive/20 animate-ping" />}
+          <Heart className={cn("relative z-10 h-4 w-4 transition-all duration-300 group-hover/save:scale-110", saved && "fill-destructive text-destructive drop-shadow-[0_0_8px_rgba(239,68,68,0.55)]")} />
         </button>
         <div className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
           <MapPin className="h-3 w-3" /> {tour.location}

@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Search, Calendar as CalendarIcon, Landmark, Mountain, Tent, Leaf, Waves, Footprints } from "lucide-react";
+import { Search, Calendar as CalendarIcon, Landmark, Mountain, Tent, Leaf, Waves } from "lucide-react";
 import { TourCard } from "@/components/ui-bits/TourCard";
 import { tours } from "@/mocks/data";
 import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 const Home = () => {
   const { t } = useTranslation();
@@ -15,24 +15,54 @@ const Home = () => {
   const [tab, setTab] = useState<"all" | "yurts" | "tours">("all");
   const [activeSearchTab, setActiveSearchTab] = useState<string | null>(null);
   const [guests, setGuests] = useState({ adults: 0, children: 0, infants: 0, pets: 0 });
+  const [heroIndex, setHeroIndex] = useState(0);
 
-  const categories = [
-    { icon: Footprints, label: t("categories.hiking"), q: "trekking" },
-    { icon: Mountain, label: t("categories.horse"), q: "horseback" },
-    { icon: Landmark, label: t("categories.cultural"), q: "cultural" },
-    { icon: Leaf, label: t("categories.eco"), q: "eco" },
-    { icon: Tent, label: t("categories.yurts"), q: "yurts" },
-    { icon: Waves, label: t("categories.lakes"), q: "Issyk-Kul" },
+  const heroImages = [
+    "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2400&q=80",
+    "https://cdn-kz.kursiv.media/wp-content/uploads/2025/05/gora-sulajman-too_foto_oshcity.gov_.kg_.jpg",
+    "https://avatars.mds.yandex.net/get-altay/15344725/2a0000019abff5dcbf93a1549315e6188894/orig",
+    "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=2400&q=80",
+    "https://images.unsplash.com/photo-1482192505345-5655af888cc4?auto=format&fit=crop&w=2400&q=80",
+    "https://images.unsplash.com/photo-1443890923422-7819ed4101c0?auto=format&fit=crop&w=2400&q=80",
+    "https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=2400&q=80",
   ];
 
-  const Divider = () => <div className="w-[1px] h-8 bg-border" />;
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+
+    return () => window.clearInterval(timer);
+  }, [heroImages.length]);
+
+  const categories = [
+    { lottie: "/assets/animation/walk.json", label: t("categories.hiking"), q: "trekking" },
+    { lottie: "/assets/animation/horse-run.json", label: t("categories.horse"), q: "horseback" },
+    { lottie: "/assets/animation/cultural.json", label: t("categories.cultural"), q: "cultural" },
+    { lottie: "/assets/animation/eco.json", label: t("categories.eco"), q: "eco" },
+    { lottie: "/assets/animation/yurts.json", label: t("categories.yurts"), q: "yurts" },
+    { lottie: "/assets/animation/lakes.json", label: t("categories.lakes"), q: "Issyk-Kul" },
+  ];
+
+  const Divider = () => <div className="hidden h-8 w-[1px] bg-border md:block" />;
 
   return (
     <>
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2400&q=80" alt="" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 overflow-hidden bg-black">
+          <AnimatePresence mode="sync" initial={false}>
+            <motion.img
+              key={heroImages[heroIndex]}
+              src={heroImages[heroIndex]}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              initial={{ x: "100%" }}
+              animate={{ x: "0%" }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.9, ease: [0.32, 0.72, 0, 1] }}
+            />
+          </AnimatePresence>
           <div className="absolute inset-0 gradient-hero-overlay" />
         </div>
         <div className="container-page relative pb-24 pt-16 text-white sm:pb-32 sm:pt-24">
@@ -76,13 +106,13 @@ const Home = () => {
               />
             )}
             
-            <div className="relative z-50 flex items-center gap-0 rounded-full bg-white p-2 text-foreground shadow-elevated ring-1 ring-black/5">
+            <div className="relative z-50 flex flex-col gap-2 rounded-[2rem] bg-white p-2 text-foreground shadow-elevated ring-1 ring-black/5 md:flex-row md:items-center md:gap-0 md:rounded-full">
               
               {/* WHERE */}
               <Popover open={activeSearchTab === "where"} onOpenChange={(open) => setActiveSearchTab(open ? "where" : null)}>
-                <div className="flex flex-[1.5] relative z-10">
+                <div className="relative z-10 flex w-full md:w-auto md:flex-[1.5]">
                   <PopoverTrigger asChild>
-                    <button className="group relative w-full cursor-pointer rounded-full px-8 py-3 text-left transition-all hover:bg-muted/30">
+                    <button className="group relative w-full cursor-pointer rounded-full px-5 py-3 text-left transition-all hover:bg-muted/30 sm:px-8">
                       {activeSearchTab === "where" && (
                         <motion.div
                           layoutId="active-search-tab"
@@ -133,9 +163,9 @@ const Home = () => {
 
               {/* WHEN */}
               <Popover open={activeSearchTab === "when"} onOpenChange={(open) => setActiveSearchTab(open ? "when" : null)}>
-                <div className="flex flex-1 relative z-10">
+                <div className="relative z-10 flex w-full md:w-auto md:flex-1">
                   <PopoverTrigger asChild>
-                    <button className="group relative w-full cursor-pointer rounded-full px-8 py-3 text-left transition-all hover:bg-muted/30">
+                    <button className="group relative w-full cursor-pointer rounded-full px-5 py-3 text-left transition-all hover:bg-muted/30 sm:px-8">
                       {activeSearchTab === "when" && (
                         <motion.div
                           layoutId="active-search-tab"
@@ -176,9 +206,9 @@ const Home = () => {
 
               {/* WHO */}
               <Popover open={activeSearchTab === "who"} onOpenChange={(open) => setActiveSearchTab(open ? "who" : null)}>
-                <div className="flex flex-1 relative z-10">
+                <div className="relative z-10 flex w-full md:w-auto md:flex-1">
                   <PopoverTrigger asChild>
-                    <button className="group relative w-full cursor-pointer rounded-full px-8 py-3 text-left transition-all hover:bg-muted/30">
+                    <button className="group relative w-full cursor-pointer rounded-full px-5 py-3 text-left transition-all hover:bg-muted/30 sm:px-8">
                       {activeSearchTab === "who" && (
                         <motion.div
                           layoutId="active-search-tab"
@@ -238,9 +268,9 @@ const Home = () => {
 
               <button 
                 onClick={() => navigate("/explore")}
-                className="ml-2 flex h-14 items-center gap-2 rounded-full bg-[#0F1729] px-6 text-white transition-all hover:bg-[#1e293b] hover:shadow-lg active:scale-95 shrink-0 z-10" 
+                className="group z-10 flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-[#0F1729] px-6 text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#1e293b] hover:shadow-[0_10px_30px_rgba(15,23,41,0.45)] active:scale-95 md:ml-2 md:w-auto" 
               >
-                <Search className="h-5 w-5 stroke-[2.5px]" />
+                <Search className="h-5 w-5 stroke-[2.5px] transition-transform duration-300 group-hover:scale-110 group-hover:-translate-x-0.5" />
                 <span className="font-semibold text-sm">Искать</span>
               </button>
             </div>
@@ -257,7 +287,14 @@ const Home = () => {
               onClick={() => navigate(`/explore?cat=${c.q}`)}
               className={`group flex flex-col items-center gap-2 text-sm font-medium transition-all ${i === 0 ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
-              <c.icon className={`h-6 w-6 transition-transform group-hover:scale-110 ${i === 0 ? "text-brand" : ""}`} />
+              <dotlottie-player
+                src={c.lottie}
+                autoplay
+                loop
+                background="transparent"
+                speed="1"
+                style={{ width: "50px", height: "50px" }}
+              />
               <span className={`transition-all ${i === 0 ? "border-b-2 border-brand pb-1" : "pb-1 border-b-2 border-transparent"}`}>{c.label}</span>
             </button>
           ))}
@@ -283,3 +320,4 @@ const Home = () => {
 const Divider = () => <div className="h-10 w-[1px] bg-border/60" />;
 
 export default Home;
+
