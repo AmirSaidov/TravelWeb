@@ -1,13 +1,17 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Minus, Layers, Navigation, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { regions, tours } from "@/mocks/data";
 import { RatingStars } from "@/components/ui-bits/RatingStars";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 const MapPage = () => {
   const [selectedId, setSelectedId] = useState(regions[0].id);
   const [activity, setActivity] = useState<"hiking" | "yurts" | "lakes">("hiking");
+  const [zoom, setZoom] = useState(1);
+  const [satellite, setSatellite] = useState(false);
   const region = regions.find((r) => r.id === selectedId)!;
   const topTours = region.topTourIds.map((id) => tours.find((tr) => tr.id === id)!).filter(Boolean);
 
@@ -23,7 +27,7 @@ const MapPage = () => {
         {/* MAP CANVAS */}
         <div className="relative overflow-hidden rounded-3xl bg-[hsl(220_25%_94%)] ring-1 ring-border">
           {/* Stylised mountain silhouettes */}
-          <svg viewBox="0 0 800 600" className="absolute inset-0 h-full w-full">
+          <motion.svg viewBox="0 0 800 600" className="absolute inset-0 h-full w-full" animate={{ scale: zoom }} transition={{ type: "spring", stiffness: 220, damping: 24 }}>
             <defs>
               <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
                 <circle cx="2" cy="2" r="0.7" fill="hsl(220 15% 80%)" />
@@ -35,7 +39,7 @@ const MapPage = () => {
             {/* Dotted routes */}
             <path d="M 80 380 Q 250 220 480 280 T 760 200" stroke="hsl(var(--brand))" strokeWidth="2" fill="none" strokeDasharray="2 8" opacity="0.55" />
             <path d="M 100 480 Q 280 420 460 460 T 740 420" stroke="hsl(var(--brand))" strokeWidth="2" fill="none" strokeDasharray="2 8" opacity="0.45" />
-          </svg>
+          </motion.svg>
 
           {/* POI markers */}
           {regions.map((r) => {
@@ -61,11 +65,17 @@ const MapPage = () => {
 
           {/* Zoom controls */}
           <div className="absolute left-5 top-5 flex flex-col overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-elevated">
-            <button className="grid h-10 w-10 place-items-center hover:bg-white/10"><Plus className="h-4 w-4" /></button>
+            <button onClick={() => setZoom((z) => Math.min(1.8, +(z + 0.1).toFixed(2)))} className="grid h-10 w-10 place-items-center hover:bg-white/10"><Plus className="h-4 w-4" /></button>
             <div className="h-px bg-white/15" />
-            <button className="grid h-10 w-10 place-items-center hover:bg-white/10"><Minus className="h-4 w-4" /></button>
+            <button onClick={() => setZoom((z) => Math.max(0.8, +(z - 0.1).toFixed(2)))} className="grid h-10 w-10 place-items-center hover:bg-white/10"><Minus className="h-4 w-4" /></button>
           </div>
-          <button className="absolute left-5 top-28 grid h-10 w-10 place-items-center rounded-2xl bg-brand text-brand-foreground shadow-elevated hover:bg-brand/90">
+          <button
+            onClick={() => {
+              setSatellite((v) => !v);
+              toast({ title: satellite ? "Classic map" : "Satellite mode" });
+            }}
+            className="absolute left-5 top-28 grid h-10 w-10 place-items-center rounded-2xl bg-brand text-brand-foreground shadow-elevated hover:bg-brand/90"
+          >
             <Layers className="h-4 w-4" />
           </button>
 
@@ -124,7 +134,7 @@ const MapPage = () => {
             <Button asChild className="h-12 w-full rounded-xl bg-brand text-brand-foreground hover:bg-brand/90">
               <Link to="/explore">Explore This Region</Link>
             </Button>
-          </div>
+        </div>
         </aside>
       </div>
     </div>

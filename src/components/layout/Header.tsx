@@ -1,7 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
 import { Menu, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/app";
 import {
@@ -22,7 +22,6 @@ export const Header = () => {
   const { t, i18n } = useTranslation();
   const user = useAppStore((s) => s.user);
   const signOut = useAppStore((s) => s.signOut);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = [
     { to: "/explore", label: t("nav.explore") },
@@ -38,7 +37,12 @@ export const Header = () => {
   const currentLang = langs.find((l) => l.code === i18n.language) ?? langs[0];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+    <motion.header
+      initial={{ y: -12, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
+      className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl"
+    >
       <div className="container-page flex h-16 items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground font-display font-bold">
@@ -117,6 +121,6 @@ export const Header = () => {
           </DropdownMenu>
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 };
