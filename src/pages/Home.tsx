@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Search, House, ConciergeBell, Compass, Landmark, Mountain, Tent, Leaf, Waves } from "lucide-react";
+import { Search, House, ConciergeBell, Compass } from "lucide-react";
 import { TourCard } from "@/components/ui-bits/TourCard";
 import { tours } from "@/mocks/data";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,15 @@ const Home = () => {
     { iconSrc: "/icons/eco.png", label: t("categories.eco"), sub: "Природа и экотуры", q: "eco" },
     { iconSrc: "/icons/yurts.png", label: t("categories.yurts"), sub: "Проживание в юртах", q: "yurts" },
     { iconSrc: "/icons/lakes.png", label: t("categories.lakes"), sub: "Озёра и водопады", q: "Issyk-Kul" },
+  ];
+
+  const recommendedPlaces = [
+    { city: "Иссык-Кульская область, Каракол", sub: "Горнолыжная база и трекинг", iconSrc: "/icons/rec-karakol.png", scale: 2.85 },
+    { city: "Нарынская область, Сон-Көл", sub: "Высокогорное озеро и юрты", iconSrc: "/icons/rec-sonkol.png", scale: 2.85 },
+    { city: "Чуйская область, Ала-Арча", sub: "Национальный парк рядом с Бишкеком", iconSrc: "/icons/rec-alaarcha.png", scale: 2.15 },
+    { city: "Джалал-Абадская область, Арсланбоб", sub: "Ореховые леса и водопады", iconSrc: "/icons/rec-arslanbob.png", scale: 2.15 },
+    { city: "Ошская область, Ош", sub: "Сулайман-Тоо и восточный колорит", iconSrc: "/icons/rec-osh.png", scale: 2.15 },
+    { city: "Нарынская область, Көл-Суу", sub: "Бирюзовое озеро в скалах", iconSrc: "/icons/rec-kolsuu.png", scale: 2.15 },
   ];
 
   const Divider = () => <div className="hidden h-8 w-[1px] bg-border md:block" />;
@@ -143,18 +152,16 @@ const Home = () => {
                   <div className="space-y-6">
                     <div>
                       <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">Рекомендуемые направления</h4>
-                      <div className="grid grid-cols-1 gap-1">
-                        {[
-                          { city: "Иссык-Кульская область, Каракол", icon: Landmark, sub: "Горнолыжная база и трекинг" },
-                          { city: "Нарынская область, Сон-Көл", icon: Waves, sub: "Высокогорное озеро и юрты" },
-                          { city: "Чуйская область, Ала-Арча", icon: Mountain, sub: "Национальный парк рядом с Бишкеком" },
-                          { city: "Джалал-Абадская область, Арсланбоб", icon: Leaf, sub: "Ореховые леса и водопады" },
-                          { city: "Ошская область, Ош", icon: Landmark, sub: "Сулайман-Тоо и восточный колорит" },
-                          { city: "Нарынская область, Көл-Суу", icon: Tent, sub: "Бирюзовое озеро в скалах" },
-                        ].map((item) => (
-                          <button key={item.city} className="flex w-full items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-muted/50">
-                            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-                              <item.icon className="h-6 w-6" />
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {recommendedPlaces.map((item) => (
+                          <button key={item.city} className="group flex w-full items-center gap-4 rounded-2xl p-3 transition-all hover:bg-muted/60">
+                            <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-muted/80 transition-all duration-300 group-hover:scale-105 group-hover:bg-muted">
+                              <img
+                                src={item.iconSrc}
+                                alt=""
+                                className="h-16 w-16 object-cover object-center transition-transform duration-300 group-hover:scale-[1.9]"
+                                style={{ transform: `scale(${item.scale})` }}
+                              />
                             </div>
                             <div className="text-left">
                               <div className="text-sm font-bold">{item.city}</div>
@@ -326,8 +333,6 @@ const Home = () => {
     </>
   );
 };
-
-const Divider = () => <div className="h-10 w-[1px] bg-border/60" />;
 
 export default Home;
 
