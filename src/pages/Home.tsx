@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Search, Calendar as CalendarIcon, Landmark, Mountain, Tent, Leaf, Waves } from "lucide-react";
+import { Search, House, ConciergeBell, Compass, Landmark, Mountain, Tent, Leaf, Waves } from "lucide-react";
 import { TourCard } from "@/components/ui-bits/TourCard";
 import { tours } from "@/mocks/data";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 
 const Home = () => {
@@ -37,12 +36,12 @@ const Home = () => {
   }, [heroImages.length]);
 
   const categories = [
-    { lottie: "/assets/animation/walk.json", label: t("categories.hiking"), q: "trekking" },
-    { lottie: "/assets/animation/horse-run.json", label: t("categories.horse"), q: "horseback" },
-    { lottie: "/assets/animation/cultural.json", label: t("categories.cultural"), q: "cultural" },
-    { lottie: "/assets/animation/eco.json", label: t("categories.eco"), q: "eco" },
-    { lottie: "/assets/animation/yurts.json", label: t("categories.yurts"), q: "yurts" },
-    { lottie: "/assets/animation/lakes.json", label: t("categories.lakes"), q: "Issyk-Kul" },
+    { iconSrc: "/icons/hiking.png", label: t("categories.hiking"), sub: "Трекинг и хайкинг", q: "trekking" },
+    { iconSrc: "/icons/horse.png", label: t("categories.horse"), sub: "Конные туры", q: "horseback" },
+    { iconSrc: "/icons/cultural.png", label: t("categories.cultural"), sub: "История и традиции", q: "cultural" },
+    { iconSrc: "/icons/eco.png", label: t("categories.eco"), sub: "Природа и экотуры", q: "eco" },
+    { iconSrc: "/icons/yurts.png", label: t("categories.yurts"), sub: "Проживание в юртах", q: "yurts" },
+    { iconSrc: "/icons/lakes.png", label: t("categories.lakes"), sub: "Озёра и водопады", q: "Issyk-Kul" },
   ];
 
   const Divider = () => <div className="hidden h-8 w-[1px] bg-border md:block" />;
@@ -91,9 +90,17 @@ const Home = () => {
                 key={key}
                 variant="ghost"
                 onClick={() => setTab(key)}
-                className={`rounded-xl px-5 py-2 text-sm font-medium transition-colors ${tab === key ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-white/85 hover:text-white"}`}
+                className={`relative rounded-xl px-5 py-2 text-sm font-medium transition-colors ${tab === key ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-white/85 hover:text-white"}`}
               >
-                {label}
+                <span className="flex items-center gap-2">
+                  {key === "all" ? <House className="h-4 w-4" /> : key === "yurts" ? <Compass className="h-4 w-4" /> : <ConciergeBell className="h-4 w-4" />}
+                  {label}
+                </span>
+                {(key === "yurts" || key === "tours") && (
+                  <span className="absolute -top-2 right-1 rounded-full bg-[#1f2d4f] px-1.5 py-[2px] text-[9px] font-semibold uppercase tracking-wide text-white">
+                    новое
+                  </span>
+                )}
               </Button>
             ))}
           </div>
@@ -282,22 +289,23 @@ const Home = () => {
 
       {/* CATEGORIES */}
       <section className="container-page py-10">
-        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 sm:gap-x-16">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {categories.map((c, i) => (
             <button
               key={c.label}
               onClick={() => navigate(`/explore?cat=${c.q}`)}
-              className={`group flex flex-col items-center gap-2 text-sm font-medium transition-all ${i === 0 ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`group rounded-3xl border px-5 py-6 text-left transition-all ${i === 0 ? "border-[#a8a2ff] bg-[linear-gradient(145deg,#f6f5ff_0%,#f8f8ff_100%)] shadow-sm" : "border-border bg-card hover:-translate-y-0.5 hover:shadow-md"}`}
             >
-              <dotlottie-player
-                src={c.lottie}
-                autoplay
-                loop
-                background="transparent"
-                speed="1"
-                style={{ width: "50px", height: "50px" }}
-              />
-              <span className={`transition-all ${i === 0 ? "border-b-2 border-brand pb-1" : "pb-1 border-b-2 border-transparent"}`}>{c.label}</span>
+              <div className="relative mb-3 flex justify-center">
+                <span className="pointer-events-none absolute inset-x-8 top-2 h-12 rounded-full bg-[#8f8cff]/0 blur-xl transition-all duration-500 group-hover:bg-[#8f8cff]/40 group-hover:scale-125" />
+                <img
+                  src={c.iconSrc}
+                  alt=""
+                  className="relative z-10 h-16 w-16 object-contain transition-all duration-500 group-hover:-translate-y-1.5 group-hover:scale-110 group-hover:rotate-1 group-hover:drop-shadow-[0_10px_20px_rgba(95,84,162,0.35)]"
+                />
+              </div>
+              <div className="text-center text-lg font-semibold text-foreground">{c.label}</div>
+              <div className="mt-1 text-center text-sm text-muted-foreground">{c.sub}</div>
             </button>
           ))}
         </div>
