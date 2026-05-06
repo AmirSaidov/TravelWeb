@@ -89,14 +89,16 @@ const Explore = () => {
             <div className="mb-3 text-sm font-semibold">{t("explore.difficulty")}</div>
             <div className="flex flex-wrap gap-2">
               {difficulties.map((d) => (
-                <button
+                <Button
                   key={d.id}
+                  size="sm"
+                  variant="outline"
                   onClick={() => toggle(diff, d.id, setDiff)}
-                  className={cn("rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition-colors",
+                  className={cn("rounded-full px-3 py-1.5 text-xs",
                     diff.includes(d.id) ? "bg-brand-soft text-accent-foreground ring-brand" : "bg-background text-foreground ring-border hover:bg-muted")}
                 >
                   {t(`explore.${d.id}` as any)} <span className="ml-0.5">{d.emoji}</span>
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -105,14 +107,16 @@ const Explore = () => {
             <div className="mb-3 text-sm font-semibold">{t("explore.tourType")}</div>
             <div className="flex flex-wrap gap-2">
               {tourTypes.map((tt) => (
-                <button
+                <Button
                   key={tt}
+                  size="sm"
+                  variant="outline"
                   onClick={() => toggle(types, tt, setTypes)}
-                  className={cn("rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition-colors capitalize",
+                  className={cn("rounded-full px-3 py-1.5 text-xs capitalize",
                     types.includes(tt) ? "bg-primary text-primary-foreground ring-primary" : "bg-background ring-border hover:bg-muted")}
                 >
                   {tt.replace("-", " ")}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -154,14 +158,15 @@ const Explore = () => {
 
 const Pagination = () => (
   <div className="mt-12 flex justify-center gap-1">
-    <button className="grid h-9 w-9 place-items-center rounded-full border border-border text-muted-foreground hover:bg-muted"><ChevronLeft className="h-4 w-4" /></button>
+    <Button variant="outline" size="icon" className="h-9 w-9 rounded-full text-muted-foreground"><ChevronLeft className="h-4 w-4" /></Button>
     {[1, 2, 3].map((n) => (
-      <button key={n} className={cn("grid h-9 w-9 place-items-center rounded-full text-sm font-medium", n === 1 ? "bg-brand text-brand-foreground" : "text-foreground hover:bg-muted")}>{n}</button>
+      <Button key={n} variant={n === 1 ? "default" : "ghost"} size="icon" className={cn("h-9 w-9 rounded-full text-sm font-medium", n === 1 ? "bg-brand text-brand-foreground hover:bg-brand/90" : "text-foreground")}>{n}</Button>
     ))}
     <span className="grid h-9 w-9 place-items-center text-muted-foreground">…</span>
-    <button className="grid h-9 w-9 place-items-center rounded-full text-sm font-medium hover:bg-muted">12</button>
-    <button className="grid h-9 w-9 place-items-center rounded-full border border-border hover:bg-muted"><ChevronRight className="h-4 w-4" /></button>
+    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-sm font-medium">12</Button>
+    <Button variant="outline" size="icon" className="h-9 w-9 rounded-full"><ChevronRight className="h-4 w-4" /></Button>
   </div>
 );
 
 export default Explore;
+

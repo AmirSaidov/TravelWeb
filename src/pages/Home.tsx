@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Search, Calendar as CalendarIcon, Landmark, Mountain, Tent, Leaf, Waves } from "lucide-react";
 import { TourCard } from "@/components/ui-bits/TourCard";
 import { tours } from "@/mocks/data";
+import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -86,13 +87,14 @@ const Home = () => {
               ["yurts", t("search.yurts")],
               ["tours", t("search.tours")],
             ] as const).map(([key, label]) => (
-              <button
+              <Button
                 key={key}
+                variant="ghost"
                 onClick={() => setTab(key)}
-                className={`rounded-xl px-5 py-2 text-sm font-medium transition-colors ${tab === key ? "bg-primary text-primary-foreground" : "text-white/85 hover:text-white"}`}
+                className={`rounded-xl px-5 py-2 text-sm font-medium transition-colors ${tab === key ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-white/85 hover:text-white"}`}
               >
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -320,4 +322,5 @@ const Home = () => {
 const Divider = () => <div className="h-10 w-[1px] bg-border/60" />;
 
 export default Home;
+
 

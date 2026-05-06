@@ -5,6 +5,7 @@ import { Share2, Heart, MapPin, Mountain, Tent, Utensils, Check } from "lucide-r
 import { tours, reviews } from "@/mocks/data";
 import { RatingStars } from "@/components/ui-bits/RatingStars";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/store/app";
 import { toast } from "@/hooks/use-toast";
 
@@ -58,10 +59,10 @@ const TourDetail = () => {
           </div>
         </div>
         <div className="flex gap-3 text-sm">
-          <button className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-muted"><Share2 className="h-4 w-4" />{t("tour.share")}</button>
-          <button onClick={() => toggleSave(tour.id)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-muted">
+          <Button variant="ghost" className="rounded-full px-3 py-2"><Share2 className="h-4 w-4" />{t("tour.share")}</Button>
+          <Button variant="ghost" onClick={() => toggleSave(tour.id)} className="rounded-full px-3 py-2">
             <Heart className={`h-4 w-4 ${saved ? "fill-destructive text-destructive" : ""}`} />{t("tour.save")}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -73,7 +74,7 @@ const TourDetail = () => {
         <div className="aspect-[4/3] overflow-hidden bg-muted"><img src={tour.gallery[1]} alt="" className="h-full w-full object-cover" /></div>
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           <img src={tour.gallery[2] ?? tour.gallery[0]} alt="" className="h-full w-full object-cover" />
-          <button className="absolute bottom-3 right-3 rounded-xl bg-white/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-card hover:bg-white">📷 {t("tour.showAll")}</button>
+          <Button variant="outline" size="sm" className="absolute bottom-3 right-3 rounded-xl bg-white/95 text-xs shadow-card hover:bg-white">?? {t("tour.showAll")}</Button>
         </div>
       </div>
 
@@ -111,9 +112,9 @@ const TourDetail = () => {
               {(showMore ? tour.longDescription : tour.longDescription.split("\n\n")[0]).split("\n\n").map((p, i) => <p key={i}>{p}</p>)}
             </div>
             {!showMore && (
-              <button onClick={() => setShowMore(true)} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold underline-offset-4 hover:underline">
+              <Button variant="link" onClick={() => setShowMore(true)} className="mt-3 h-auto p-0 text-sm font-semibold">
                 {t("tour.showMore")} ›
-              </button>
+              </Button>
             )}
           </div>
 
@@ -170,16 +171,16 @@ const TourDetail = () => {
               <div className="grid grid-cols-2">
                 <label className="border-r border-border p-3">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("tour.startDate")}</span>
-                  <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="mt-1 w-full bg-transparent text-sm font-medium outline-none" />
+                  <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="mt-1 h-8 border-0 bg-transparent px-0 py-0 text-sm font-medium shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 </label>
                 <label className="p-3">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("tour.endDate")}</span>
-                  <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="mt-1 w-full bg-transparent text-sm font-medium outline-none" />
+                  <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="mt-1 h-8 border-0 bg-transparent px-0 py-0 text-sm font-medium shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 </label>
               </div>
               <label className="block border-t border-border p-3">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("tour.guestsLabel")}</span>
-                <input type="number" min={1} max={tour.maxGuests} value={guests} onChange={(e) => setGuests(Math.max(1, Math.min(tour.maxGuests, +e.target.value || 1)))} className="mt-1 w-full bg-transparent text-sm font-medium outline-none" />
+                <Input type="number" min={1} max={tour.maxGuests} value={guests} onChange={(e) => setGuests(Math.max(1, Math.min(tour.maxGuests, +e.target.value || 1)))} className="mt-1 h-8 border-0 bg-transparent px-0 py-0 text-sm font-medium shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
               </label>
             </div>
 
@@ -210,3 +211,4 @@ const Row = ({ label, value }: { label: string; value: string }) => (
 );
 
 export default TourDetail;
+
