@@ -27,16 +27,63 @@ const initial: Msg[] = [
 export const AIAssistant = () => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [fabPos, setFabPos] = useState({ x: 0, y: 0 });
+  const [fabReady, setFabReady] = useState(false);
+  const [chatPos, setChatPos] = useState({ x: 0, y: 0 });
+  const [chatReady, setChatReady] = useState(false);
   const [budget, setBudget] = useState(false);
   const [checklist, setChecklist] = useState(false);
   const [consult, setConsult] = useState(false);
   const [messages, setMessages] = useState<Msg[]>(initial);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const FAB_SIZE = 56;
+  const FAB_MARGIN = 24;
+  const CHAT_WIDTH = 420;
+  const CHAT_HEIGHT = 640;
+
+  const clampFab = (x: number, y: number) => {
+    const maxX = Math.max(0, window.innerWidth - FAB_SIZE - FAB_MARGIN);
+    const maxY = Math.max(0, window.innerHeight - FAB_SIZE - FAB_MARGIN);
+    return {
+      x: Math.min(Math.max(FAB_MARGIN, x), maxX),
+      y: Math.min(Math.max(FAB_MARGIN, y), maxY),
+    };
+  };
+
+  const clampChat = (x: number, y: number) => {
+    const width = Math.min(CHAT_WIDTH, window.innerWidth - 32);
+    const height = Math.min(CHAT_HEIGHT, window.innerHeight - 48);
+    const maxX = Math.max(0, window.innerWidth - width - FAB_MARGIN);
+    const maxY = Math.max(0, window.innerHeight - height - FAB_MARGIN);
+    return {
+      x: Math.min(Math.max(FAB_MARGIN, x), maxX),
+      y: Math.min(Math.max(FAB_MARGIN, y), maxY),
+    };
+  };
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, open]);
+
+  useEffect(() => {
+    const init = () => {
+      const p = clampFab(window.innerWidth - FAB_SIZE - FAB_MARGIN, window.innerHeight - FAB_SIZE - FAB_MARGIN);
+      setFabPos(p);
+      setFabReady(true);
+      const c = clampChat(window.innerWidth - Math.min(CHAT_WIDTH, window.innerWidth - 32) - FAB_MARGIN, window.innerHeight - Math.min(CHAT_HEIGHT, window.innerHeight - 48) - FAB_MARGIN);
+      setChatPos(c);
+      setChatReady(true);
+    };
+    init();
+
+    const onResize = () => {
+      setFabPos((prev) => clampFab(prev.x, prev.y));
+      setChatPos((prev) => clampChat(prev.x, prev.y));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const send = (text: string) => {
     if (!text.trim()) return;
@@ -67,8 +114,18 @@ export const AIAssistant = () => {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 22 }}
+            drag
+            dragMomentum={false}
+            dragElastic={0.05}
+            style={fabReady ? { left: 0, top: 0, x: fabPos.x, y: fabPos.y } : undefined}
+            onDragEnd={(_, info) => {
+              setFabPos((prev) => {
+                const next = clampFab(prev.x + info.offset.x, prev.y + info.offset.y);
+                return next;
+              });
+            }}
             onClick={() => setOpen(true)}
-            className="fixed bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-brand text-brand-foreground shadow-elevated transition hover:scale-105"
+            className="fixed z-40 grid h-14 w-14 place-items-center rounded-full bg-brand text-brand-foreground shadow-elevated transition hover:scale-105"
             aria-label="Open AI assistant"
           >
             <span className="absolute inset-0 animate-pulse-ring rounded-full bg-brand/40" />
@@ -84,7 +141,17 @@ export const AIAssistant = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.96 }}
             transition={{ type: "spring", stiffness: 240, damping: 24 }}
-            className="fixed bottom-6 right-6 z-50 flex h-[640px] max-h-[calc(100vh-3rem)] w-[420px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl bg-background shadow-elevated ring-1 ring-border"
+            drag
+            dragMomentum={false}
+            dragElastic={0.04}
+            style={chatReady ? { left: 0, top: 0, x: chatPos.x, y: chatPos.y } : undefined}
+            onDragEnd={(_, info) => {
+              setChatPos((prev) => {
+                const next = clampChat(prev.x + info.offset.x, prev.y + info.offset.y);
+                return next;
+              });
+            }}
+            className="fixed z-50 flex h-[640px] max-h-[calc(100vh-3rem)] w-[420px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl bg-background shadow-elevated ring-1 ring-border"
           >
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-border px-5 py-4">

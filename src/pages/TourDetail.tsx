@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Share2, Heart, MapPin, Mountain, Tent, Utensils, Check } from "lucide-react";
+import { Share2, Heart, HeartCrack, MapPin, Mountain, Tent, Utensils, Check, MessageCircle, Send, Instagram, Facebook, Ellipsis } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { tours, reviews } from "@/mocks/data";
 import { RatingStars } from "@/components/ui-bits/RatingStars";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,10 @@ const TourDetail = () => {
   const tour = useMemo(() => tours.find((tr) => tr.slug === slug) ?? tours[0], [slug]);
   const tReviews = reviews.filter((r) => r.tourId === tour.id);
   const [showMore, setShowMore] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [saveBurstKey, setSaveBurstKey] = useState(0);
+  const [breakHeartKey, setBreakHeartKey] = useState(0);
+  const [showBrokenHeart, setShowBrokenHeart] = useState(false);
   const saved = useAppStore((s) => s.saved.includes(tour.id));
   const toggleSave = useAppStore((s) => s.toggleSave);
   const addBooking = useAppStore((s) => s.addBooking);
@@ -29,6 +34,73 @@ const TourDetail = () => {
   const eco = 25;
   const service = 0;
   const total = subtotal + eco + service;
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+  const shareTitle = encodeURIComponent(tour.title);
+  const shareItems = [
+    {
+      id: "whatsapp",
+      label: "WhatsApp",
+      href: `https://wa.me/?text=${shareTitle}%20${encodeURIComponent(shareUrl)}`,
+      icon: MessageCircle,
+      bg: "bg-[#25D366]",
+      x: 95,
+      y: 76,
+      z: 50,
+    },
+    {
+      id: "telegram",
+      label: "Telegram",
+      href: `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${shareTitle}`,
+      icon: Send,
+      bg: "bg-[#229ED9]",
+      x: 71,
+      y: 80,
+      z: 40,
+    },
+    {
+      id: "facebook",
+      label: "Facebook",
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      icon: Facebook,
+      bg: "bg-[#1877F2]",
+      x: 50,
+      y: 90,
+      z: 30,
+    },
+    {
+      id: "instagram",
+      label: "Instagram",
+      href: "https://www.instagram.com/",
+      icon: Instagram,
+      bg: "bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]",
+      x: 34,
+      y: 106,
+      z: 20,
+    },
+    {
+      id: "more",
+      label: "More",
+      href: "",
+      icon: Ellipsis,
+      bg: "bg-white text-[#374151]",
+      x: 24,
+      y: 130,
+      z: 10,
+    },
+  ];
+
+  const saveParticles = [
+    { x: -26, y: -18 },
+    { x: -30, y: 0 },
+    { x: -24, y: 18 },
+    { x: -8, y: 24 },
+    { x: 8, y: 24 },
+    { x: 24, y: 16 },
+    { x: 30, y: 0 },
+    { x: 24, y: -16 },
+    { x: 8, y: -24 },
+    { x: -8, y: -24 },
+  ];
 
   const book = () => {
     addBooking({
@@ -45,6 +117,18 @@ const TourDetail = () => {
     navigate("/dashboard");
   };
 
+  const handleSaveClick = () => {
+    const willSave = !saved;
+    if (willSave) {
+      setSaveBurstKey((k) => k + 1);
+    } else {
+      setBreakHeartKey((k) => k + 1);
+      setShowBrokenHeart(true);
+      window.setTimeout(() => setShowBrokenHeart(false), 520);
+    }
+    toggleSave(tour.id);
+  };
+
   return (
     <div className="container-page py-10">
       {/* Title */}
@@ -59,10 +143,136 @@ const TourDetail = () => {
           </div>
         </div>
         <div className="flex gap-3 text-sm">
-          <Button variant="ghost" className="rounded-full px-3 py-2"><Share2 className="h-4 w-4" />{t("tour.share")}</Button>
-          <Button variant="ghost" onClick={() => toggleSave(tour.id)} className="rounded-full px-3 py-2">
-            <Heart className={`h-4 w-4 ${saved ? "fill-destructive text-destructive" : ""}`} />{t("tour.save")}
-          </Button>
+          <div className="relative overflow-visible">
+            <Button
+              variant="ghost"
+              onClick={() => setShareOpen((s) => !s)}
+              className="rounded-full border border-[#9dd9c3]/40 bg-[#EAF7F1] px-4 py-2 text-[#0f5e48] hover:bg-[#dff3ea]"
+            >
+              <Share2 className={`h-4 w-4 transition-transform duration-300 ${shareOpen ? "rotate-45" : ""}`} />
+              {t("tour.share")}
+            </Button>
+            <AnimatePresence>
+              {shareOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                  className="pointer-events-none absolute bottom-full right-0 z-20 mb-2 h-[130px] w-[220px] origin-bottom-right"
+                >
+                  {shareItems.map((item, index) => {
+                    const Icon = item.icon;
+                    const commonProps = {
+                      key: item.id,
+                      title: item.label,
+                      initial: { x: 58, y: 120, scale: 0.35, opacity: 0 },
+                      animate: { x: item.x, y: item.y, scale: 1, opacity: 1 },
+                      exit: { x: 58, y: 120, scale: 0.35, opacity: 0 },
+                      transition: { type: "spring", stiffness: 360, damping: 22, delay: index * 0.03 },
+                      className: `pointer-events-auto absolute left-0 top-0 grid h-12 w-12 place-items-center rounded-full shadow-[0_8px_18px_rgba(15,23,42,0.2)] ring-4 ring-white ${item.bg}`,
+                    } as const;
+
+                    if (item.id === "more") {
+                      return (
+                        <motion.button
+                          {...commonProps}
+                          onClick={() => setShareOpen(false)}
+                          whileHover={{ scale: 1.12, zIndex: 90 }}
+                          whileTap={{ scale: 0.95 }}
+                          style={{ zIndex: item.z }}
+                          className={`${commonProps.className} text-[#374151] transition-all`}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </motion.button>
+                      );
+                    }
+
+                    return (
+                      <motion.a
+                        {...commonProps}
+                        href={item.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        whileHover={{ scale: 1.12, zIndex: 90 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{ zIndex: item.z }}
+                        className={`${commonProps.className} text-white transition-all`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </motion.a>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <motion.button
+            type="button"
+            onClick={handleSaveClick}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="inline-flex items-center gap-2 rounded-full border border-[#9dd9c3]/40 bg-[#EAF7F1] px-4 py-2 text-[#0f5e48] transition-colors hover:bg-[#dff3ea]"
+          >
+            <span className="relative inline-flex h-4 w-4 items-center justify-center">
+              <AnimatePresence>
+                {saved && (
+                  <span key={saveBurstKey} className="absolute inset-0">
+                    {saveParticles.map((p, i) => (
+                      <motion.span
+                        key={`${saveBurstKey}-${i}`}
+                        initial={{ x: p.x, y: p.y, scale: 0.9, opacity: 0 }}
+                        animate={{ x: 0, y: 0, scale: 0.2, opacity: [0, 1, 0] }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.015 }}
+                        className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#FF6B8A]"
+                      />
+                    ))}
+                  </span>
+                )}
+              </AnimatePresence>
+              <AnimatePresence>
+                {showBrokenHeart && (
+                  <motion.span
+                    key={breakHeartKey}
+                    initial={{ y: 0, rotate: 0, opacity: 1, scale: 1 }}
+                    animate={{ y: 16, rotate: 18, opacity: 0, scale: 0.75 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5, ease: "easeIn" }}
+                    className="absolute inset-0 inline-flex items-center justify-center"
+                  >
+                    <HeartCrack className="h-4 w-4 text-[#FF4D6D] drop-shadow-[0_0_8px_rgba(255,77,109,0.65)]" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              {saved && (
+                <>
+                  <motion.span
+                    initial={{ scale: 0.2, opacity: 0.7 }}
+                    animate={{ scale: 1.8, opacity: 0 }}
+                    transition={{ duration: 0.55, ease: "easeOut" }}
+                    className="absolute inset-0 rounded-full border border-[#FF4D6D]"
+                  />
+                  <motion.span
+                    initial={{ scale: 0.2, opacity: 0.5 }}
+                    animate={{ scale: 2.3, opacity: 0 }}
+                    transition={{ duration: 0.7, ease: "easeOut", delay: 0.05 }}
+                    className="absolute inset-0 rounded-full border border-[#FF9BB0]"
+                  />
+                </>
+              )}
+              <motion.span
+                key={saved ? "saved" : "idle"}
+                initial={{ scale: 0.7, rotate: -18 }}
+                animate={saved ? { scale: [0.9, 1.28, 1], rotate: [0, -8, 0] } : { scale: [1, 0.92, 1], rotate: [0, 8, 0] }}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+                className="inline-flex"
+              >
+                <Heart className={`h-4 w-4 ${saved ? "fill-[#FF4D6D] text-[#FF4D6D] drop-shadow-[0_0_8px_rgba(255,77,109,0.65)]" : "text-[#0f8f6a]"}`} />
+              </motion.span>
+            </span>
+            {t("tour.save")}
+          </motion.button>
         </div>
       </div>
 
