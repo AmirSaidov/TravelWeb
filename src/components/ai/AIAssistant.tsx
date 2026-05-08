@@ -98,15 +98,15 @@ export const AIAssistant = () => {
                   {t("ai.status")}
                 </div>
               </div>
-              <button onClick={reset} className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted" aria-label="Reset"><RefreshCw className="h-4 w-4" /></button>
-              <button onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted" aria-label="Close"><X className="h-4 w-4" /></button>
+              <Button variant="ghost" size="icon" onClick={reset} className="h-8 w-8 rounded-full text-muted-foreground" aria-label="Reset"><RefreshCw className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 rounded-full text-muted-foreground" aria-label="Close"><X className="h-4 w-4" /></Button>
             </div>
 
             {/* Quick tools */}
             <div className="flex gap-2 border-b border-border px-5 py-3">
-              <button onClick={() => setBudget(true)} className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium hover:bg-muted"><Calculator className="h-3.5 w-3.5" /> Budget</button>
-              <button onClick={() => setChecklist(true)} className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium hover:bg-muted"><ListChecks className="h-3.5 w-3.5" /> Checklist</button>
-              <button onClick={() => setConsult(true)} className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium hover:bg-muted"><Globe2 className="h-3.5 w-3.5" /> Visa</button>
+              <Button size="sm" variant="secondary" onClick={() => setBudget(true)} className="rounded-full text-xs"><Calculator className="h-3.5 w-3.5" /> Budget</Button>
+              <Button size="sm" variant="secondary" onClick={() => setChecklist(true)} className="rounded-full text-xs"><ListChecks className="h-3.5 w-3.5" /> Checklist</Button>
+              <Button size="sm" variant="secondary" onClick={() => setConsult(true)} className="rounded-full text-xs"><Globe2 className="h-3.5 w-3.5" /> Visa</Button>
             </div>
 
             {/* Messages */}
@@ -163,7 +163,7 @@ export const AIAssistant = () => {
             {/* Suggestions */}
             <div className="flex gap-2 overflow-x-auto border-t border-border px-5 py-3 no-scrollbar">
               {[t("ai.suggestPack"), t("ai.suggestHotel"), t("ai.suggestWeather")].map((s, i) => (
-                <button key={i} onClick={() => send(s)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${i === 0 ? "bg-blue-50 text-blue-700" : i === 1 ? "bg-brand-soft text-accent-foreground" : "bg-amber-50 text-amber-700"}`}>{s}</button>
+                <Button key={i} size="sm" variant="ghost" onClick={() => send(s)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${i === 0 ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : i === 1 ? "bg-brand-soft text-accent-foreground hover:bg-brand-soft/80" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}`}>{s}</Button>
               ))}
             </div>
 
@@ -172,14 +172,14 @@ export const AIAssistant = () => {
               onSubmit={(e) => { e.preventDefault(); send(input); }}
               className="flex items-center gap-2 border-t border-border bg-background p-3"
             >
-              <button type="button" className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-muted"><Paperclip className="h-4 w-4" /></button>
-              <input
+              <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground"><Paperclip className="h-4 w-4" /></Button>
+              <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t("ai.placeholder")}
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                className="h-9 flex-1 border-0 bg-transparent px-0 shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <button type="submit" className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground hover:opacity-90"><Send className="h-4 w-4" /></button>
+              <Button type="submit" size="icon" className="h-9 w-9 rounded-full bg-primary text-primary-foreground hover:opacity-90"><Send className="h-4 w-4" /></Button>
             </form>
             <p className="px-5 pb-2 text-center text-[10px] text-muted-foreground">{t("ai.disclaimer")}</p>
           </motion.div>

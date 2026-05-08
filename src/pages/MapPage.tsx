@@ -61,13 +61,13 @@ const MapPage = () => {
 
           {/* Zoom controls */}
           <div className="absolute left-5 top-5 flex flex-col overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-elevated">
-            <button className="grid h-10 w-10 place-items-center hover:bg-white/10"><Plus className="h-4 w-4" /></button>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-none text-primary-foreground hover:bg-white/10"><Plus className="h-4 w-4" /></Button>
             <div className="h-px bg-white/15" />
-            <button className="grid h-10 w-10 place-items-center hover:bg-white/10"><Minus className="h-4 w-4" /></button>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-none text-primary-foreground hover:bg-white/10"><Minus className="h-4 w-4" /></Button>
           </div>
-          <button className="absolute left-5 top-28 grid h-10 w-10 place-items-center rounded-2xl bg-brand text-brand-foreground shadow-elevated hover:bg-brand/90">
+          <Button variant="default" size="icon" className="absolute left-5 top-28 h-10 w-10 rounded-2xl bg-brand text-brand-foreground shadow-elevated hover:bg-brand/90">
             <Layers className="h-4 w-4" />
-          </button>
+          </Button>
 
           {/* Bottom bar */}
           <div className="absolute bottom-5 left-5 flex items-center gap-3 rounded-2xl bg-card px-4 py-2.5 text-xs shadow-card ring-1 ring-border">
@@ -77,7 +77,7 @@ const MapPage = () => {
             </div>
             <div className="ml-2 flex gap-1.5">
               {(["hiking", "yurts", "lakes"] as const).map((a) => (
-                <button key={a} onClick={() => setActivity(a)} className={`rounded-full px-3 py-1 text-xs font-medium ${activity === a ? "bg-brand-soft text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}>{a}</button>
+                <Button key={a} size="sm" variant={activity === a ? "secondary" : "ghost"} onClick={() => setActivity(a)} className={`rounded-full px-3 py-1 text-xs font-medium ${activity === a ? "bg-brand-soft text-accent-foreground hover:bg-brand-soft" : "text-muted-foreground hover:text-foreground"}`}>{a}</Button>
               ))}
             </div>
           </div>

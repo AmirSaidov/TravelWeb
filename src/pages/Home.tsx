@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Search, Calendar as CalendarIcon, Landmark, Mountain, Tent, Leaf, Waves, Footprints } from "lucide-react";
+import { Search, House, ConciergeBell, Compass } from "lucide-react";
 import { TourCard } from "@/components/ui-bits/TourCard";
 import { tours } from "@/mocks/data";
-import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 const Home = () => {
   const { t } = useTranslation();
@@ -15,24 +15,63 @@ const Home = () => {
   const [tab, setTab] = useState<"all" | "yurts" | "tours">("all");
   const [activeSearchTab, setActiveSearchTab] = useState<string | null>(null);
   const [guests, setGuests] = useState({ adults: 0, children: 0, infants: 0, pets: 0 });
+  const [heroIndex, setHeroIndex] = useState(0);
 
-  const categories = [
-    { icon: Footprints, label: t("categories.hiking"), q: "trekking" },
-    { icon: Mountain, label: t("categories.horse"), q: "horseback" },
-    { icon: Landmark, label: t("categories.cultural"), q: "cultural" },
-    { icon: Leaf, label: t("categories.eco"), q: "eco" },
-    { icon: Tent, label: t("categories.yurts"), q: "yurts" },
-    { icon: Waves, label: t("categories.lakes"), q: "Issyk-Kul" },
+  const heroImages = [
+    "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2400&q=80",
+    "https://cdn-kz.kursiv.media/wp-content/uploads/2025/05/gora-sulajman-too_foto_oshcity.gov_.kg_.jpg",
+    "https://avatars.mds.yandex.net/get-altay/15344725/2a0000019abff5dcbf93a1549315e6188894/orig",
+    "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=2400&q=80",
+    "https://images.unsplash.com/photo-1482192505345-5655af888cc4?auto=format&fit=crop&w=2400&q=80",
+    "https://images.unsplash.com/photo-1443890923422-7819ed4101c0?auto=format&fit=crop&w=2400&q=80",
+    "https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=2400&q=80",
   ];
 
-  const Divider = () => <div className="w-[1px] h-8 bg-border" />;
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+
+    return () => window.clearInterval(timer);
+  }, [heroImages.length]);
+
+  const categories = [
+    { iconSrc: "/icons/hiking.png", label: t("categories.hiking"), sub: "Трекинг и хайкинг", q: "trekking" },
+    { iconSrc: "/icons/horse.png", label: t("categories.horse"), sub: "Конные туры", q: "horseback" },
+    { iconSrc: "/icons/cultural.png", label: t("categories.cultural"), sub: "История и традиции", q: "cultural" },
+    { iconSrc: "/icons/eco.png", label: t("categories.eco"), sub: "Природа и экотуры", q: "eco" },
+    { iconSrc: "/icons/yurts.png", label: t("categories.yurts"), sub: "Проживание в юртах", q: "yurts" },
+    { iconSrc: "/icons/lakes.png", label: t("categories.lakes"), sub: "Озёра и водопады", q: "Issyk-Kul" },
+  ];
+
+  const recommendedPlaces = [
+    { city: "Иссык-Кульская область, Каракол", sub: "Горнолыжная база и трекинг", iconSrc: "/icons/rec-karakol.png", scale: 2.85 },
+    { city: "Нарынская область, Сон-Көл", sub: "Высокогорное озеро и юрты", iconSrc: "/icons/rec-sonkol.png", scale: 2.85 },
+    { city: "Чуйская область, Ала-Арча", sub: "Национальный парк рядом с Бишкеком", iconSrc: "/icons/rec-alaarcha.png", scale: 2.15 },
+    { city: "Джалал-Абадская область, Арсланбоб", sub: "Ореховые леса и водопады", iconSrc: "/icons/rec-arslanbob.png", scale: 2.15 },
+    { city: "Ошская область, Ош", sub: "Сулайман-Тоо и восточный колорит", iconSrc: "/icons/rec-osh.png", scale: 2.15 },
+    { city: "Нарынская область, Көл-Суу", sub: "Бирюзовое озеро в скалах", iconSrc: "/icons/rec-kolsuu.png", scale: 2.15 },
+  ];
+
+  const Divider = () => <div className="hidden h-8 w-[1px] bg-border md:block" />;
 
   return (
     <>
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2400&q=80" alt="" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 overflow-hidden bg-black">
+          <AnimatePresence mode="sync" initial={false}>
+            <motion.img
+              key={heroImages[heroIndex]}
+              src={heroImages[heroIndex]}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              initial={{ x: "100%" }}
+              animate={{ x: "0%" }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.9, ease: [0.32, 0.72, 0, 1] }}
+            />
+          </AnimatePresence>
           <div className="absolute inset-0 gradient-hero-overlay" />
         </div>
         <div className="container-page relative pb-24 pt-16 text-white sm:pb-32 sm:pt-24">
@@ -56,13 +95,22 @@ const Home = () => {
               ["yurts", t("search.yurts")],
               ["tours", t("search.tours")],
             ] as const).map(([key, label]) => (
-              <button
+              <Button
                 key={key}
+                variant="ghost"
                 onClick={() => setTab(key)}
-                className={`rounded-xl px-5 py-2 text-sm font-medium transition-colors ${tab === key ? "bg-primary text-primary-foreground" : "text-white/85 hover:text-white"}`}
+                className={`relative rounded-xl px-5 py-2 text-sm font-medium transition-colors ${tab === key ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-white/85 hover:text-white"}`}
               >
-                {label}
-              </button>
+                <span className="flex items-center gap-2">
+                  {key === "all" ? <House className="h-4 w-4" /> : key === "yurts" ? <Compass className="h-4 w-4" /> : <ConciergeBell className="h-4 w-4" />}
+                  {label}
+                </span>
+                {(key === "yurts" || key === "tours") && (
+                  <span className="absolute -top-2 right-1 rounded-full bg-[#1f2d4f] px-1.5 py-[2px] text-[9px] font-semibold uppercase tracking-wide text-white">
+                    новое
+                  </span>
+                )}
+              </Button>
             ))}
           </div>
 
@@ -76,13 +124,13 @@ const Home = () => {
               />
             )}
             
-            <div className="relative z-50 flex items-center gap-0 rounded-full bg-white p-2 text-foreground shadow-elevated ring-1 ring-black/5">
+            <div className="relative z-50 flex flex-col gap-2 rounded-[2rem] bg-white p-2 text-foreground shadow-elevated ring-1 ring-black/5 md:flex-row md:items-center md:gap-0 md:rounded-full">
               
               {/* WHERE */}
               <Popover open={activeSearchTab === "where"} onOpenChange={(open) => setActiveSearchTab(open ? "where" : null)}>
-                <div className="flex flex-[1.5] relative z-10">
+                <div className="relative z-10 flex w-full md:w-auto md:flex-[1.5]">
                   <PopoverTrigger asChild>
-                    <button className="group relative w-full cursor-pointer rounded-full px-8 py-3 text-left transition-all hover:bg-muted/30">
+                    <button className="group relative w-full cursor-pointer rounded-full px-5 py-3 text-left transition-all hover:bg-muted/30 sm:px-8">
                       {activeSearchTab === "where" && (
                         <motion.div
                           layoutId="active-search-tab"
@@ -104,18 +152,16 @@ const Home = () => {
                   <div className="space-y-6">
                     <div>
                       <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">Рекомендуемые направления</h4>
-                      <div className="grid grid-cols-1 gap-1">
-                        {[
-                          { city: "Иссык-Кульская область, Каракол", icon: Landmark, sub: "Горнолыжная база и трекинг" },
-                          { city: "Нарынская область, Сон-Көл", icon: Waves, sub: "Высокогорное озеро и юрты" },
-                          { city: "Чуйская область, Ала-Арча", icon: Mountain, sub: "Национальный парк рядом с Бишкеком" },
-                          { city: "Джалал-Абадская область, Арсланбоб", icon: Leaf, sub: "Ореховые леса и водопады" },
-                          { city: "Ошская область, Ош", icon: Landmark, sub: "Сулайман-Тоо и восточный колорит" },
-                          { city: "Нарынская область, Көл-Суу", icon: Tent, sub: "Бирюзовое озеро в скалах" },
-                        ].map((item) => (
-                          <button key={item.city} className="flex w-full items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-muted/50">
-                            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-                              <item.icon className="h-6 w-6" />
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {recommendedPlaces.map((item) => (
+                          <button key={item.city} className="group flex w-full items-center gap-4 rounded-2xl p-3 transition-all hover:bg-muted/60">
+                            <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-muted/80 transition-all duration-300 group-hover:scale-105 group-hover:bg-muted">
+                              <img
+                                src={item.iconSrc}
+                                alt=""
+                                className="h-16 w-16 object-cover object-center transition-transform duration-300 group-hover:scale-[1.9]"
+                                style={{ transform: `scale(${item.scale})` }}
+                              />
                             </div>
                             <div className="text-left">
                               <div className="text-sm font-bold">{item.city}</div>
@@ -133,9 +179,9 @@ const Home = () => {
 
               {/* WHEN */}
               <Popover open={activeSearchTab === "when"} onOpenChange={(open) => setActiveSearchTab(open ? "when" : null)}>
-                <div className="flex flex-1 relative z-10">
+                <div className="relative z-10 flex w-full md:w-auto md:flex-1">
                   <PopoverTrigger asChild>
-                    <button className="group relative w-full cursor-pointer rounded-full px-8 py-3 text-left transition-all hover:bg-muted/30">
+                    <button className="group relative w-full cursor-pointer rounded-full px-5 py-3 text-left transition-all hover:bg-muted/30 sm:px-8">
                       {activeSearchTab === "when" && (
                         <motion.div
                           layoutId="active-search-tab"
@@ -176,9 +222,9 @@ const Home = () => {
 
               {/* WHO */}
               <Popover open={activeSearchTab === "who"} onOpenChange={(open) => setActiveSearchTab(open ? "who" : null)}>
-                <div className="flex flex-1 relative z-10">
+                <div className="relative z-10 flex w-full md:w-auto md:flex-1">
                   <PopoverTrigger asChild>
-                    <button className="group relative w-full cursor-pointer rounded-full px-8 py-3 text-left transition-all hover:bg-muted/30">
+                    <button className="group relative w-full cursor-pointer rounded-full px-5 py-3 text-left transition-all hover:bg-muted/30 sm:px-8">
                       {activeSearchTab === "who" && (
                         <motion.div
                           layoutId="active-search-tab"
@@ -238,9 +284,9 @@ const Home = () => {
 
               <button 
                 onClick={() => navigate("/explore")}
-                className="ml-2 flex h-14 items-center gap-2 rounded-full bg-[#0F1729] px-6 text-white transition-all hover:bg-[#1e293b] hover:shadow-lg active:scale-95 shrink-0 z-10" 
+                className="group z-10 flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-[#0F1729] px-6 text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#1e293b] hover:shadow-[0_10px_30px_rgba(15,23,41,0.45)] active:scale-95 md:ml-2 md:w-auto" 
               >
-                <Search className="h-5 w-5 stroke-[2.5px]" />
+                <Search className="h-5 w-5 stroke-[2.5px] transition-transform duration-300 group-hover:scale-110 group-hover:-translate-x-0.5" />
                 <span className="font-semibold text-sm">Искать</span>
               </button>
             </div>
@@ -250,15 +296,23 @@ const Home = () => {
 
       {/* CATEGORIES */}
       <section className="container-page py-10">
-        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 sm:gap-x-16">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {categories.map((c, i) => (
             <button
               key={c.label}
               onClick={() => navigate(`/explore?cat=${c.q}`)}
-              className={`group flex flex-col items-center gap-2 text-sm font-medium transition-all ${i === 0 ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`group rounded-3xl border px-5 py-6 text-left transition-all ${i === 0 ? "border-[#a8a2ff] bg-[linear-gradient(145deg,#f6f5ff_0%,#f8f8ff_100%)] shadow-sm" : "border-border bg-card hover:-translate-y-0.5 hover:shadow-md"}`}
             >
-              <c.icon className={`h-6 w-6 transition-transform group-hover:scale-110 ${i === 0 ? "text-brand" : ""}`} />
-              <span className={`transition-all ${i === 0 ? "border-b-2 border-brand pb-1" : "pb-1 border-b-2 border-transparent"}`}>{c.label}</span>
+              <div className="relative mb-3 flex justify-center">
+                <span className="pointer-events-none absolute inset-x-8 top-2 h-12 rounded-full bg-[#8f8cff]/0 blur-xl transition-all duration-500 group-hover:bg-[#8f8cff]/40 group-hover:scale-125" />
+                <img
+                  src={c.iconSrc}
+                  alt=""
+                  className="relative z-10 h-16 w-16 object-contain transition-all duration-500 group-hover:-translate-y-1.5 group-hover:scale-110 group-hover:rotate-1 group-hover:drop-shadow-[0_10px_20px_rgba(95,84,162,0.35)]"
+                />
+              </div>
+              <div className="text-center text-lg font-semibold text-foreground">{c.label}</div>
+              <div className="mt-1 text-center text-sm text-muted-foreground">{c.sub}</div>
             </button>
           ))}
         </div>
@@ -280,6 +334,6 @@ const Home = () => {
   );
 };
 
-const Divider = () => <div className="h-10 w-[1px] bg-border/60" />;
-
 export default Home;
+
+
