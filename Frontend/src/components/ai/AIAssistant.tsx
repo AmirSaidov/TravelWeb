@@ -6,14 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { api } from "@/lib/api/client";
 
 interface DayBlock { day: number; title: string; tag: "Culture" | "Nature" | "Adventure"; text: string; img: string; }
-interface Msg { id: string; role: "user" | "ai"; text?: string; timeline?: DayBlock[]; pricePerPerson?: number; ts: number; }
+interface Msg { id: string; role: "user" | "assistant"; text?: string; timeline?: DayBlock[]; pricePerPerson?: number; ts: number; }
+type AiChatResponse = { answer: string };
+
+const createId = () => Math.random().toString(36).slice(2);
 
 const initial: Msg[] = [
   { id: "1", role: "user", text: "Can you help me plan a 3-day trip to Issyk-Kul lake? I'm interested in hiking and local culture.", ts: Date.now() - 60_000 },
   {
-    id: "2", role: "ai", ts: Date.now() - 30_000,
+    id: "2", role: "assistant", ts: Date.now() - 30_000,
     text: "Of course! Issyk-Kul is magical. I've drafted a perfect 3-day itinerary that balances the alpine beauty of the north shore with the cultural heritage of Karakol.",
     timeline: [
       { day: 1, title: "Cholpon-Ata & Petroglyphs", tag: "Culture", text: "Visit the open-air museum and relax by the crystal clear water.", img: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=160&q=80" },
@@ -32,30 +36,45 @@ export const AIAssistant = () => {
   const [consult, setConsult] = useState(false);
   const [messages, setMessages] = useState<Msg[]>(initial);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, open]);
+  }, [messages, open, isLoading]);
 
-  const send = (text: string) => {
-    if (!text.trim()) return;
-    const userMsg: Msg = { id: Math.random().toString(36).slice(2), role: "user", text, ts: Date.now() };
+  const send = async (text: string) => {
+    const message = text.trim();
+    if (!message || isLoading) return;
+
+    const userMsg: Msg = { id: createId(), role: "user", text: message, ts: Date.now() };
     setMessages((m) => [...m, userMsg]);
     setInput("");
-    setTimeout(() => {
+    setIsLoading(true);
+
+    try {
+      const { data } = await api.post<AiChatResponse>("/ai/chat/", { message });
       setMessages((m) => [
         ...m,
         {
-          id: Math.random().toString(36).slice(2), role: "ai", ts: Date.now(),
-          text:
-            "Great question! Based on your interests I'd suggest combining a yurt stay near Song-Kul with a horseback day in Ala-Archa. Layer up — nights at altitude can drop below 5°C, even in summer. Want me to put together a full itinerary?",
+          id: createId(), role: "assistant", ts: Date.now(),
+          text: data.answer,
         },
       ]);
-    }, 600);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        { id: createId(), role: "assistant", ts: Date.now(), text: "\u041e\u0448\u0438\u0431\u043a\u0430 AI. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0435\u0449\u0451 \u0440\u0430\u0437." },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const reset = () => setMessages(initial);
+  const reset = () => {
+    setMessages(initial);
+    setIsLoading(false);
+  };
 
   return (
     <>
@@ -158,12 +177,24 @@ export const AIAssistant = () => {
                   )}
                 </div>
               ))}
+              {isLoading && (
+                <div className="flex gap-2">
+                  <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-gradient-to-br from-brand to-emerald-700">
+                    <Globe2 className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div className="max-w-[85%] space-y-3">
+                    <div className="rounded-2xl rounded-tl-sm bg-muted/60 px-4 py-2.5 text-sm text-muted-foreground">
+                      {"AI \u0434\u0443\u043c\u0430\u0435\u0442..."}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Suggestions */}
             <div className="flex gap-2 overflow-x-auto border-t border-border px-5 py-3 no-scrollbar">
               {[t("ai.suggestPack"), t("ai.suggestHotel"), t("ai.suggestWeather")].map((s, i) => (
-                <Button key={i} size="sm" variant="ghost" onClick={() => send(s)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${i === 0 ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : i === 1 ? "bg-brand-soft text-accent-foreground hover:bg-brand-soft/80" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}`}>{s}</Button>
+                <Button key={i} size="sm" variant="ghost" disabled={isLoading} onClick={() => send(s)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${i === 0 ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : i === 1 ? "bg-brand-soft text-accent-foreground hover:bg-brand-soft/80" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}`}>{s}</Button>
               ))}
             </div>
 
@@ -177,9 +208,10 @@ export const AIAssistant = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t("ai.placeholder")}
+                disabled={isLoading}
                 className="h-9 flex-1 border-0 bg-transparent px-0 shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <Button type="submit" size="icon" className="h-9 w-9 rounded-full bg-primary text-primary-foreground hover:opacity-90"><Send className="h-4 w-4" /></Button>
+              <Button type="submit" size="icon" disabled={isLoading} className="h-9 w-9 rounded-full bg-primary text-primary-foreground hover:opacity-90"><Send className="h-4 w-4" /></Button>
             </form>
             <p className="px-5 pb-2 text-center text-[10px] text-muted-foreground">{t("ai.disclaimer")}</p>
           </motion.div>

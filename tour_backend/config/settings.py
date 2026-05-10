@@ -12,10 +12,11 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -38,10 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'corsheaders',
     'rest_framework',
-    'tours'
+    'tours',
+    'ai',
 ]
 
 MIDDLEWARE = [
@@ -95,12 +96,12 @@ if db_engine == 'django.db.backends.sqlite3':
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'travelweb'),
-            'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
-            'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-            'PORT': os.getenv('DB_PORT', '5432'),
+            'ENGINE': os.getenv('DB_ENGINE'),
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST'),
+            'PORT': os.getenv('DB_PORT'),
             'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
         }
     }
