@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { AIAssistant } from "@/components/ai/AIAssistant";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 export const SiteLayout = ({ footerVariant = "dark" }: { footerVariant?: "dark" | "light" }) => {
   return (
@@ -12,6 +13,7 @@ export const SiteLayout = ({ footerVariant = "dark" }: { footerVariant?: "dark" 
       </main>
       <Footer variant={footerVariant} />
       <AIAssistant />
+      <AuthModal />
     </div>
   );
 };

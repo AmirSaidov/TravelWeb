@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ConfigProvider, theme as antdTheme } from "antd";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,33 +11,49 @@ import TourDetail from "./pages/TourDetail";
 import MapPage from "./pages/MapPage";
 import Dashboard from "./pages/Dashboard";
 import Experiences from "./pages/Experiences";
+import RoutePage from "./pages/RoutePage";
 import { AuthPage } from "./pages/Auth";
+import { AuthRoute } from "./pages/AuthRoute";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route element={<SiteLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/explore" element={<Explore />} />
-            <Route path="/tour/:slug" element={<TourDetail />} />
-            <Route path="/map" element={<MapPage />} />
-            <Route path="/experiences" element={<Experiences />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-          </Route>
-          <Route path="/login" element={<AuthPage mode="login" />} />
-          <Route path="/register" element={<AuthPage mode="register" />} />
-          <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ConfigProvider
+      theme={{
+        algorithm: antdTheme.defaultAlgorithm,
+        token: {
+          colorPrimary: "#0f172a",
+          colorInfo: "#0f172a",
+          colorSuccess: "#10b981",
+          borderRadius: 14,
+          fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+        },
+      }}
+    >
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Routes>
+            <Route element={<SiteLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/tour/:slug" element={<TourDetail />} />
+              <Route path="/map" element={<MapPage />} />
+              <Route path="/experiences" element={<Experiences />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/route" element={<RoutePage />} />
+            </Route>
+            <Route path="/login" element={<AuthRoute mode="login" />} />
+            <Route path="/register" element={<AuthRoute mode="register" />} />
+            <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ConfigProvider>
   </QueryClientProvider>
 );
 

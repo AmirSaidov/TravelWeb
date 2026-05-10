@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { tours } from "@/mocks/data";
+import { useQuery } from "@tanstack/react-query";
+import { toursApi } from "@/lib/api";
 import { TourCard } from "@/components/ui-bits/TourCard";
 import type { TourType } from "@/types";
 
@@ -14,6 +15,10 @@ const groups: { id: TourType; title: string; subtitle: string }[] = [
 
 const Experiences = () => {
   const { t } = useTranslation();
+  const { data: tours = [] } = useQuery({
+    queryKey: ["tours"],
+    queryFn: () => toursApi.getTours(),
+  });
   return (
     <div className="container-page py-12">
       <header className="mx-auto max-w-2xl text-center">

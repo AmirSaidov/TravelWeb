@@ -12,10 +12,11 @@ export const TourCard = ({ tour, layout = "vertical" }: { tour: Tour; layout?: "
   return (
     <Link
       to={`/tour/${tour.slug}`}
-      className="group block overflow-hidden rounded-3xl bg-card shadow-card ring-1 ring-border/60 transition-all hover:-translate-y-0.5 hover:shadow-elevated"
+      className="group block rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-        <img src={tour.hero} alt={tour.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+      <div className="overflow-hidden rounded-3xl bg-card shadow-card ring-1 ring-border/60 transition-[transform,box-shadow] duration-300 will-change-transform [transform:translateZ(0)] hover:-translate-y-0.5 hover:shadow-elevated">
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+          <img src={tour.hero} alt={tour.title} className="h-full w-full object-cover transition-transform duration-500 [transform:translateZ(0)] group-hover:scale-105" />
         {tour.badge && (
           <span className="absolute left-3 top-3 rounded-md bg-gold px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gold-foreground shadow-sm">
             {tour.badge}
@@ -35,23 +36,24 @@ export const TourCard = ({ tour, layout = "vertical" }: { tour: Tour; layout?: "
         </div>
       </div>
 
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="font-display text-base font-semibold leading-snug">{tour.title}</h3>
-          <RatingStars value={tour.rating} />
-        </div>
-        <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-          <span>{tour.duration}</span>
-          <span className="capitalize">{tour.difficulty}</span>
-        </div>
-        <div className="mt-3 flex items-end justify-between">
-          <div>
-            <span className="text-lg font-semibold">${tour.price}</span>
-            <span className="text-xs text-muted-foreground"> / person</span>
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-display text-base font-semibold leading-snug">{tour.title}</h3>
+            <RatingStars value={tour.rating} />
           </div>
-          {layout === "vertical" && tour.badge === "ALL INCLUSIVE" && (
-            <span className="rounded-full bg-brand-soft px-2 py-1 text-[10px] font-medium text-accent-foreground">All Inclusive</span>
-          )}
+          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+            <span>{tour.duration}</span>
+            <span className="capitalize">{tour.difficulty}</span>
+          </div>
+          <div className="mt-3 flex items-end justify-between">
+            <div>
+              <span className="text-lg font-semibold">${tour.price}</span>
+              <span className="text-xs text-muted-foreground"> / person</span>
+            </div>
+            {layout === "vertical" && tour.badge === "ALL INCLUSIVE" && (
+              <span className="rounded-full bg-brand-soft px-2 py-1 text-[10px] font-medium text-accent-foreground">All Inclusive</span>
+            )}
+          </div>
         </div>
       </div>
     </Link>
