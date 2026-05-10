@@ -78,25 +78,32 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+#
+# Default runtime is PostgreSQL.
+# SQLite remains available only as an explicit opt-in:
+#   DB_ENGINE=django.db.backends.sqlite3
+#   DB_NAME=db.sqlite3
+db_engine = os.getenv('DB_ENGINE', 'django.db.backends.postgresql')
 
-DATABASES = {
-    'default': {
-        # Default is SQLite for local dev; for production use Postgres by setting env vars.
-        # Example:
-        #   DB_ENGINE=django.db.backends.postgresql
-        #   DB_NAME=travelweb
-        #   DB_USER=travelweb
-        #   DB_PASSWORD=...
-        #   DB_HOST=127.0.0.1
-        #   DB_PORT=5432
-        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
-        'NAME': os.getenv('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
-        'USER': os.getenv('DB_USER', ''),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', ''),
-        'PORT': os.getenv('DB_PORT', ''),
+if db_engine == 'django.db.backends.sqlite3':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.getenv('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'travelweb'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+            'HOST': os.getenv('DB_HOST', '127.0.0.1'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        }
+    }
 
 
 # Password validation
