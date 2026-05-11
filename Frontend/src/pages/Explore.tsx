@@ -9,6 +9,8 @@ import { toursApi } from "@/lib/api";
 import type { Difficulty, TourType } from "@/types";
 import { Button, Checkbox, Drawer, Empty, Input, Pagination as AntPagination, Slider } from "antd";
 import { cn } from "@/lib/utils";
+import { useAppStore } from "@/store/app";
+import { formatMoney } from "@/lib/currency";
 
 const durationBuckets = [
   { id: "1-3", label: "1–3 days", match: (d: number) => d <= 3 },
@@ -38,6 +40,7 @@ const typeMeta: Record<TourType, { iconSrc: string; labelKey: string }> = {
 
 const Explore = () => {
   const { t } = useTranslation();
+  const currency = useAppStore((s) => s.currency);
   const [params, setParams] = useSearchParams();
   const initialCat = (params.get("cat") || "") as TourType | "";
   const initialWhere = (params.get("where") || "").trim();
@@ -46,9 +49,10 @@ const Explore = () => {
   const to = params.get("to");
   const tripDays =
     from && to ? Math.max(1, differenceInCalendarDays(parseISO(to), parseISO(from)) + 1) : null;
-  const [price, setPrice] = useState<[number, number]>([50, 1200]);
-  const [duration, setDuration] = useState<string[]>(["4-7"]);
-  const [diff, setDiff] = useState<Difficulty[]>(["moderate"]);
+  // Defaults should show all tours until the user narrows filters.
+  const [price, setPrice] = useState<[number, number]>([0, 100000]);
+  const [duration, setDuration] = useState<string[]>([]);
+  const [diff, setDiff] = useState<Difficulty[]>([]);
   const [types, setTypes] = useState<TourType[]>(initialCat ? [initialCat] : []);
   const [q, setQ] = useState(initialWhere);
   const [sort, setSort] = useState<"popular" | "price_asc" | "price_desc">("popular");
@@ -56,8 +60,8 @@ const Explore = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const { data: tours = [], isLoading, isError } = useQuery({
-    queryKey: ["tours"],
-    queryFn: () => toursApi.getTours(),
+    queryKey: ["tours", currency],
+    queryFn: () => toursApi.getTours(currency),
   });
 
   const filtered = useMemo(() => {
@@ -65,7 +69,8 @@ const Explore = () => {
       if (q && !`${tr.title} ${tr.location} ${tr.region}`.toLowerCase().includes(q.toLowerCase())) return false;
       if (tr.price < price[0] || tr.price > price[1]) return false;
       if (initialGuests > 0 && tr.maxGuests < initialGuests) return false;
-      if (tripDays && tr.durationDays !== tripDays) return false;
+      // If user selected a date range, show tours that fit within it (not only exact matches).
+      if (tripDays && tr.durationDays > tripDays) return false;
       if (duration.length && !duration.some((d) => durationBuckets.find((b) => b.id === d)?.match(tr.durationDays))) return false;
       if (diff.length && !diff.includes(tr.difficulty)) return false;
       if (types.length && !types.some((tt) => tr.types.includes(tt))) return false;
@@ -170,11 +175,14 @@ const Explore = () => {
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-xl border border-border px-3 py-2">
                 <div className="text-muted-foreground">Min</div>
-                <div className="font-semibold">${price[0]}</div>
+                <div className="font-semibold">{formatMoney(price[0], currency)}</div>
               </div>
               <div className="rounded-xl border border-border px-3 py-2">
                 <div className="text-muted-foreground">Max</div>
-                <div className="font-semibold">${price[1]}{price[1] >= 1500 ? "+" : ""}</div>
+                <div className="font-semibold">
+                  {formatMoney(price[1], currency)}
+                  {price[1] >= 1500 ? "+" : ""}
+                </div>
               </div>
             </div>
           </div>
@@ -288,12 +296,12 @@ const Explore = () => {
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-xl border border-border px-3 py-2">
                         <div className="text-muted-foreground">Min</div>
-                        <div className="font-semibold">${price[0]}</div>
+                        <div className="font-semibold">{formatMoney(price[0], currency)}</div>
                       </div>
                       <div className="rounded-xl border border-border px-3 py-2">
                         <div className="text-muted-foreground">Max</div>
                         <div className="font-semibold">
-                          ${price[1]}
+                          {formatMoney(price[1], currency)}
                           {price[1] >= 1500 ? "+" : ""}
                         </div>
                       </div>

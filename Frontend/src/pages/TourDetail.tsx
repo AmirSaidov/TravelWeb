@@ -1,8 +1,8 @@
 ﻿import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Share2, Heart, MapPin, Mountain, Tent, Utensils, Check } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Share2, Heart, MapPin, Mountain, Tent, Utensils, Check, Star } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { enUS, ru } from "date-fns/locale";
 import { bookingApi, reviewsApi, toursApi } from "@/lib/api";
@@ -10,9 +10,12 @@ import { geocodePlace } from "@/lib/mapboxGeocoding";
 import { RatingStars } from "@/components/ui-bits/RatingStars";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/store/app";
 import { toast } from "@/hooks/use-toast";
 import { MiniMap } from "@/components/maps/MiniMap";
+import { formatMoney } from "@/lib/currency";
+import { cn } from "@/lib/utils";
 
 const iconMap: Record<string, any> = { mountain: Mountain, tent: Tent, utensils: Utensils, horse: Mountain };
 
@@ -20,11 +23,13 @@ const TourDetail = () => {
   const { slug } = useParams();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const currency = useAppStore((s) => s.currency);
   const { data: tour, isLoading } = useQuery({
-    queryKey: ["tour", slug],
+    queryKey: ["tour", slug, currency],
     queryFn: async () => {
       if (!slug) return null;
-      return toursApi.getTourBySlug(slug);
+      return toursApi.getTourBySlug(slug, currency);
     },
   });
   const { data: reviews = [], isLoading: reviewsLoading } = useQuery({
@@ -41,6 +46,10 @@ const TourDetail = () => {
   const addBooking = useAppStore((s) => s.addBooking);
   const user = useAppStore((s) => s.user);
   const openAuthModal = useAppStore((s) => s.openAuthModal);
+
+  const [myRating, setMyRating] = useState(5);
+  const [myComment, setMyComment] = useState("");
+  const [postingReview, setPostingReview] = useState(false);
   const locale = (() => {
     const lng = (i18n.language || "en").toLowerCase();
     if (lng.startsWith("ru")) return ru;
@@ -59,13 +68,13 @@ const TourDetail = () => {
   const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
   const { data: geoCenter = null } = useQuery({
     queryKey: ["geocode", tour?.location],
-    enabled: Boolean(mapboxToken && tour?.location),
+    enabled: Boolean(mapboxToken && tour?.location && !tour?.coordinates),
     queryFn: async () => {
       if (!mapboxToken || !tour?.location) return null;
       return geocodePlace({ token: mapboxToken, query: tour.location, country: "kg" });
     },
   });
-  const mapCenter = geoCenter;
+  const mapCenter = tour?.coordinates ? { lng: tour.coordinates.lng, lat: tour.coordinates.lat } : geoCenter;
 
   const [start, setStart] = useState("2026-08-14");
   const [end, setEnd] = useState("2026-08-21");
@@ -84,7 +93,7 @@ const TourDetail = () => {
     }
 
     try {
-      const booking = await bookingApi.createBooking({ tourId: tour.id, peopleCount: guests, date: start });
+      const booking = await bookingApi.createBooking({ tourId: tour.id, peopleCount: guests, date: start, currency });
 
       addBooking({
         id: String(booking.booking_id),
@@ -112,6 +121,41 @@ const TourDetail = () => {
         variant: "destructive",
       });
       return;
+    }
+  };
+
+  const submitReview = async () => {
+    if (!tour) return;
+    if (!user) return openAuthModal("login");
+
+    const comment = myComment.trim();
+    if (!comment) {
+      toast({ title: "Review", description: "Please write a short comment.", variant: "destructive" });
+      return;
+    }
+    if (!Number.isFinite(myRating) || myRating < 1 || myRating > 5) {
+      toast({ title: "Review", description: "Rating must be 1 to 5.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      setPostingReview(true);
+      await reviewsApi.create({ tourId: tour.id, rating: myRating, comment });
+      setMyComment("");
+      setMyRating(5);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["reviews", tour.id] }),
+        queryClient.invalidateQueries({ queryKey: ["tours"] }),
+      ]);
+      toast({ title: "Thanks!", description: "Your review has been posted." });
+    } catch (err: any) {
+      toast({
+        title: "Review error",
+        description: err?.response?.data?.error ?? "Failed to post review.",
+        variant: "destructive",
+      });
+    } finally {
+      setPostingReview(false);
     }
   };
 
@@ -238,6 +282,62 @@ const TourDetail = () => {
                 ))}
               </div>
             )}
+
+            <div className="mt-6 rounded-3xl border border-border bg-card p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="font-display text-base font-semibold">Leave a review</div>
+                {!user && (
+                  <Button
+                    variant="outline"
+                    className="h-9 rounded-full px-4 text-xs"
+                    onClick={() => openAuthModal("login")}
+                  >
+                    Sign in
+                  </Button>
+                )}
+              </div>
+
+              <div className="mt-3 flex items-center gap-1">
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const v = i + 1;
+                  const active = v <= myRating;
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      disabled={!user || postingReview}
+                      onClick={() => setMyRating(v)}
+                      className={cn(
+                        "grid h-9 w-9 place-items-center rounded-full transition",
+                        !user || postingReview ? "opacity-50" : "hover:bg-muted/60",
+                      )}
+                      aria-label={`Rate ${v} stars`}
+                    >
+                      <Star className={cn("h-5 w-5", active ? "fill-gold text-gold" : "text-muted-foreground")} />
+                    </button>
+                  );
+                })}
+                <span className="ml-2 text-sm text-muted-foreground">{myRating}/5</span>
+              </div>
+
+              <Textarea
+                className="mt-3 rounded-2xl"
+                placeholder="Write your experience…"
+                value={myComment}
+                onChange={(e) => setMyComment(e.target.value)}
+                disabled={!user || postingReview}
+              />
+
+              <div className="mt-3 flex justify-end">
+                <Button
+                  onClick={submitReview}
+                  disabled={!user || postingReview}
+                  className="h-11 rounded-xl bg-brand px-6 text-brand-foreground hover:bg-brand/90"
+                >
+                  {postingReview ? "Posting…" : "Post review"}
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Where you'll be */}
@@ -257,7 +357,7 @@ const TourDetail = () => {
           <div className="rounded-3xl bg-card p-6 shadow-elevated ring-1 ring-border">
             <div className="flex items-end justify-between">
               <div>
-                <span className="font-display text-3xl font-semibold">${tour.price}</span>
+                <span className="font-display text-3xl font-semibold">{formatMoney(tour.price, tour.currency)}</span>
                 <span className="text-sm text-muted-foreground"> / person</span>
               </div>
               <div className="text-right text-xs text-muted-foreground">
@@ -287,13 +387,16 @@ const TourDetail = () => {
             <p className="mt-2 text-center text-xs text-muted-foreground">{t("tour.notCharged")}</p>
 
             <div className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
-              <Row label={`$${tour.price} Г— ${guests} ${guests > 1 ? "people" : "person"}`} value={`$${subtotal.toLocaleString()}`} />
-              <Row label={t("tour.ecoFee")} value={`$${eco}`} />
-              <Row label={t("tour.serviceFee")} value={`$${service}`} />
+              <Row
+                label={`${formatMoney(tour.price, tour.currency)} × ${guests} ${guests > 1 ? "people" : "person"}`}
+                value={formatMoney(subtotal, tour.currency)}
+              />
+              <Row label={t("tour.ecoFee")} value={formatMoney(eco, tour.currency)} />
+              <Row label={t("tour.serviceFee")} value={formatMoney(service, tour.currency)} />
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
               <span className="font-semibold">{t("tour.total")}</span>
-              <span className="font-display text-lg font-semibold">${total.toLocaleString()}</span>
+              <span className="font-display text-lg font-semibold">{formatMoney(total, tour.currency)}</span>
             </div>
             <div className="mt-4 rounded-xl bg-brand-soft px-3 py-2 text-center text-xs font-medium text-accent-foreground">
               {t("tour.freeCancellation", { date: "Aug 7th" })}

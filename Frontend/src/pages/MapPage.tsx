@@ -8,6 +8,9 @@ import { RatingStars } from "@/components/ui-bits/RatingStars";
 import { Button } from "@/components/ui/button";
 import { toursApi } from "@/lib/api";
 import { geocodePlace } from "@/lib/mapboxGeocoding";
+import { applyRussianLabels } from "@/lib/mapboxLabels";
+import { formatMoney } from "@/lib/currency";
+import { useAppStore } from "@/store/app";
 
 type TourCoord = { id: string; lng: number; lat: number };
 
@@ -28,9 +31,20 @@ const writeCache = (cache: Record<string, { lng: number; lat: number }>) => {
 };
 
 const MapPage = () => {
+  const currency = useAppStore((s) => s.currency);
+  const [is3d, setIs3d] = useState(() => {
+    try {
+      return localStorage.getItem("map:3d") === "1";
+    } catch {
+      return false;
+    }
+  });
   const { data: tours = [] } = useQuery({
-    queryKey: ["tours"],
-    queryFn: () => toursApi.getTours(),
+    queryKey: ["tours", currency],
+    queryFn: () => toursApi.getTours(currency),
+    // Ensure map sidebar reflects backend edits without needing a hard reload.
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
@@ -52,6 +66,11 @@ const MapPage = () => {
       const out: TourCoord[] = [];
 
       for (const tour of tours) {
+        if (tour.coordinates) {
+          out.push({ id: tour.id, lng: tour.coordinates.lng, lat: tour.coordinates.lat });
+          continue;
+        }
+
         const q = (tour.location || tour.region || "").trim();
         if (!q) continue;
 
@@ -94,6 +113,97 @@ const MapPage = () => {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
 
+  const getFirstSymbolLayerId = (map: mapboxgl.Map) => {
+    const layers = map.getStyle()?.layers || [];
+    const firstSymbol = layers.find((l) => l.type === "symbol");
+    return firstSymbol?.id;
+  };
+
+  const apply3d = (map: mapboxgl.Map, enabled: boolean) => {
+    if (!map.isStyleLoaded()) return;
+
+    // Clean up first (safe even if not present).
+    if (map.getLayer("kg-3d-buildings")) map.removeLayer("kg-3d-buildings");
+    if (map.getLayer("kg-terrain-hillshade")) map.removeLayer("kg-terrain-hillshade");
+    if (map.getLayer("kg-sky")) map.removeLayer("kg-sky");
+    if (map.getTerrain()) map.setTerrain(null);
+    map.setFog(undefined as any);
+
+    if (!enabled) {
+      map.easeTo({ pitch: 0, bearing: 0, duration: 450 });
+      return;
+    }
+
+    if (!map.getSource("kg-dem")) {
+      map.addSource("kg-dem", {
+        type: "raster-dem",
+        url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+        tileSize: 512,
+        maxzoom: 14,
+      });
+    }
+
+    map.setTerrain({ source: "kg-dem", exaggeration: 1.65 });
+    map.easeTo({ pitch: 60, bearing: -18, duration: 650 });
+
+    if (!map.getLayer("kg-terrain-hillshade")) {
+      const before = getFirstSymbolLayerId(map);
+      map.addLayer({ id: "kg-terrain-hillshade", type: "hillshade", source: "kg-dem" }, before);
+    }
+
+    if (!map.getLayer("kg-3d-buildings") && map.getSource("composite")) {
+      const before = getFirstSymbolLayerId(map);
+      map.addLayer(
+        {
+          id: "kg-3d-buildings",
+          source: "composite",
+          "source-layer": "building",
+          filter: ["==", "extrude", "true"],
+          type: "fill-extrusion",
+          minzoom: 14.6,
+          paint: {
+            "fill-extrusion-color": "hsl(140 30% 32% / 0.55)",
+            "fill-extrusion-height": ["get", "height"],
+            "fill-extrusion-base": ["coalesce", ["get", "min_height"], 0],
+            "fill-extrusion-opacity": 0.92,
+          },
+        },
+        before
+      );
+    }
+
+    if (!map.getLayer("kg-sky")) {
+      map.addLayer({
+        id: "kg-sky",
+        type: "sky",
+        paint: {
+          "sky-type": "atmosphere",
+          "sky-atmosphere-sun": [0.0, 0.0],
+          "sky-atmosphere-sun-intensity": 12,
+        },
+      });
+    }
+
+    map.setFog({
+      color: "rgb(232, 243, 255)",
+      "high-color": "rgb(205, 232, 255)",
+      "horizon-blend": 0.08,
+      "space-color": "rgb(215, 230, 255)",
+      "star-intensity": 0.15,
+    } as any);
+  };
+
+  const setMapStyle = (map: mapboxgl.Map, styleUrl: string) => {
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    const pitch = map.getPitch();
+    const bearing = map.getBearing();
+    map.setStyle(styleUrl);
+    map.once("style.load", () => {
+      map.jumpTo({ center, zoom, pitch, bearing });
+    });
+  };
+
   useEffect(() => {
     if (!mapboxToken || !mapContainerRef.current || mapRef.current) return;
 
@@ -108,6 +218,10 @@ const MapPage = () => {
 
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-left");
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+    map.on("style.load", () => {
+      applyRussianLabels(map);
+      apply3d(map, is3d);
+    });
 
     mapRef.current = map;
 
@@ -119,6 +233,25 @@ const MapPage = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapboxToken]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("map:3d", is3d ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  }, [is3d]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Satellite + terrain reads more like "real relief" vs outdoors vector style.
+    const desiredStyle = is3d ? "mapbox://styles/mapbox/satellite-streets-v12" : "mapbox://styles/mapbox/outdoors-v12";
+    // Always setStyle on toggle to ensure consistent look.
+    setMapStyle(map, desiredStyle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [is3d]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -137,11 +270,22 @@ const MapPage = () => {
       const el = document.createElement("button");
       el.type = "button";
       el.className =
-        "grid h-10 w-10 place-items-center rounded-full bg-white text-foreground shadow-elevated ring-4 ring-white/70 transition-transform hover:scale-105";
-      el.innerHTML = `<span style="display:block;width:10px;height:10px;border-radius:9999px;background:rgb(34 197 94)"></span>`;
+        "relative grid h-12 w-12 place-items-center rounded-full bg-white text-foreground shadow-elevated ring-4 ring-white/70 transition-transform hover:scale-105";
+      el.innerHTML = `
+        <span style="position:absolute;inset:0;border-radius:9999px;box-shadow:0 0 0 0 rgba(34,197,94,0.40);animation:tw-pulse 2.4s ease-out infinite;"></span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" fill="rgb(34 197 94)"/>
+          <circle cx="12" cy="10" r="2.6" fill="white"/>
+        </svg>
+        <style>
+          @keyframes tw-pulse { 0% { box-shadow:0 0 0 0 rgba(34,197,94,0.35);} 70% { box-shadow:0 0 0 16px rgba(34,197,94,0);} 100% { box-shadow:0 0 0 0 rgba(34,197,94,0);} }
+        </style>
+      `;
       el.addEventListener("click", () => setSelectedId(tour.id));
 
-      const marker = new mapboxgl.Marker({ element: el, anchor: "center" }).setLngLat([coord.lng, coord.lat]).addTo(map);
+      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat([coord.lng, coord.lat])
+        .addTo(map);
       markersRef.current.set(tour.id, marker);
     });
 
@@ -173,14 +317,26 @@ const MapPage = () => {
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-surface-muted">
-      <div className="container-page grid min-h-[calc(100vh-4rem)] gap-6 py-6 lg:grid-cols-[1fr_400px]">
+      <div className="container-page flex min-h-[calc(100vh-4rem)] flex-col gap-6 py-6">
         <div className="relative overflow-hidden rounded-3xl bg-[hsl(220_25%_94%)] ring-1 ring-border">
           {!mapboxToken ? (
-            <div className="grid h-full place-items-center p-10 text-center text-sm text-muted-foreground">
+            <div className="grid h-[70vh] min-h-[520px] place-items-center p-10 text-center text-sm text-muted-foreground">
               Mapbox token missing. Add `VITE_MAPBOX_TOKEN` to `.env.local`.
             </div>
           ) : (
-            <div ref={mapContainerRef} className="h-full min-h-[560px] w-full" />
+            <div className="relative">
+              <div ref={mapContainerRef} className="h-[70vh] min-h-[520px] w-full lg:h-[calc(100vh-4rem-340px)]" />
+              <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={is3d ? "default" : "secondary"}
+                  onClick={() => setIs3d((v) => !v)}
+                  className="pointer-events-auto h-9 rounded-xl"
+                >
+                  {is3d ? "3D on" : "3D off"}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
 
@@ -198,7 +354,7 @@ const MapPage = () => {
                 No tours found (or locations could not be geocoded).
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {toursWithCoords.slice(0, 8).map(({ tour }) => (
                   <button
                     key={tour.id}
@@ -215,7 +371,7 @@ const MapPage = () => {
                         <RatingStars value={tour.rating} size={12} /> ({tour.reviewCount} reviews)
                       </div>
                       <div className="mt-0.5 text-xs">
-                        <span className="font-semibold">${tour.price}</span> / person
+                        <span className="font-semibold">{formatMoney(tour.price, tour.currency)}</span> / person
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />

@@ -1,8 +1,10 @@
 from django.urls import path
+from .geo import suggest_places
 from .views import (
     BookingCancelView,
     BookingConfirmView,
     BookingListCreateView,
+    CurrencyRatesView,
     LoginView,
     MyBookingsView,
     PaymentCreateView,
@@ -15,6 +17,8 @@ from .views import (
 )
 
 urlpatterns = [
+    path("geo/suggest/", suggest_places, name="geo-suggest"),
+    path("currency/rates/", CurrencyRatesView.as_view(), name="currency-rates"),
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/login/', LoginView.as_view(), name='login'),
     path('profile/', ProfileView.as_view(), name='profile'),

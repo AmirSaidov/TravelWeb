@@ -1,5 +1,7 @@
 import type { Tour } from "@/types";
 import { api, tokenStorage } from "./client";
+import { normalizeCurrency } from "@/lib/currency";
+import { getPreferredCurrency } from "@/lib/currencyPref";
 
 type ApiTour = {
   id: number;
@@ -8,6 +10,8 @@ type ApiTour = {
   price: string;
   currency?: string | null;
   location: string;
+  lat?: number | string | null;
+  lng?: number | string | null;
   duration: number;
   difficulty: string;
   types?: string[] | null;
@@ -30,6 +34,8 @@ const mapApiTour = (t: ApiTour): Tour => {
   const price = Number(t.price);
   const rating = Number(t.rating_avg ?? 0);
   const reviewCount = Number(t.review_count ?? 0);
+  const lat = t.lat == null ? null : Number(t.lat);
+  const lng = t.lng == null ? null : Number(t.lng);
   const parsedTypes = Array.isArray(t.types)
     ? t.types.filter((x): x is Tour["types"][number] =>
         ["horseback", "trekking", "culinary", "off-road", "winter", "cultural", "eco", "yurts"].includes(String(x))
@@ -42,10 +48,12 @@ const mapApiTour = (t: ApiTour): Tour => {
     title: t.title,
     region: t.location,
     location: t.location,
+    coordinates:
+      Number.isFinite(lat) && Number.isFinite(lng) ? { lat: lat as number, lng: lng as number } : null,
     description: t.description,
     longDescription: t.description,
     price: Number.isFinite(price) ? price : 0,
-    currency: (t.currency || "").trim(),
+    currency: normalizeCurrency(t.currency),
     duration: `${t.duration} days`,
     durationDays: t.duration,
     rating: Number.isFinite(rating) ? rating : 0,
@@ -88,43 +96,49 @@ export const authApi = {
 };
 
 export const toursApi = {
-  async getTours() {
-    const { data } = await api.get<ApiTour[]>("/tours/");
+  async getTours(currency?: string) {
+    const cur = normalizeCurrency(currency) || getPreferredCurrency();
+    const { data } = await api.get<ApiTour[]>("/tours/", { params: { currency: cur } });
     return data.map(mapApiTour);
   },
-  async getTourBySlug(slug: string) {
-    const all = await this.getTours();
+  async getTourBySlug(slug: string, currency?: string) {
+    const all = await this.getTours(currency);
     return all.find((t) => t.slug === slug) ?? null;
   },
 };
 
 export const bookingApi = {
-  async createBooking(input: { tourId: string; peopleCount: number; date?: string }) {
+  async createBooking(input: { tourId: string; peopleCount: number; date?: string; currency?: string }) {
+    const cur = normalizeCurrency(input.currency) || getPreferredCurrency();
     const { data } = await api.post<{
       booking_id: number;
       status: string;
       total_price: string;
+      currency?: string;
       available_places: number;
       payment_due_at?: string | null;
-    }>("/bookings/", { tour_id: input.tourId, people_count: input.peopleCount, date: input.date ?? null });
+    }>("/bookings/", { tour_id: input.tourId, people_count: input.peopleCount, date: input.date ?? null }, { params: { currency: cur } });
     return data;
   },
-  async myBookings() {
-    const { data } = await api.get<any[]>("/bookings/my/");
+  async myBookings(currency?: string) {
+    const cur = normalizeCurrency(currency) || getPreferredCurrency();
+    const { data } = await api.get<any[]>("/bookings/my/", { params: { currency: cur } });
     return data;
   },
   async cancel(input: { bookingId: number }) {
     const { data } = await api.post<{ booking_id: number; status: string }>(`/bookings/${input.bookingId}/cancel/`);
     return data;
   },
-  async pay(input: { bookingId: number }) {
+  async pay(input: { bookingId: number; currency?: string }) {
+    const cur = normalizeCurrency(input.currency) || getPreferredCurrency();
     const { data } = await api.post<{
       payment_id: number;
       booking_id: number;
       payment_status: string;
       booking_status: string;
       amount: string;
-    }>("/payments/", { booking_id: input.bookingId });
+      currency?: string;
+    }>("/payments/", { booking_id: input.bookingId }, { params: { currency: cur } });
     return data;
   },
 };

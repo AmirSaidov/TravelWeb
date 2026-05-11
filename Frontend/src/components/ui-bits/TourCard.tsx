@@ -4,6 +4,7 @@ import type { Tour } from "@/types";
 import { useAppStore } from "@/store/app";
 import { RatingStars } from "./RatingStars";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/currency";
 
 export const TourCard = ({ tour, layout = "vertical" }: { tour: Tour; layout?: "vertical" | "compact" }) => {
   const saved = useAppStore((s) => s.saved.includes(tour.id));
@@ -47,7 +48,7 @@ export const TourCard = ({ tour, layout = "vertical" }: { tour: Tour; layout?: "
           </div>
           <div className="mt-3 flex items-end justify-between">
             <div>
-              <span className="text-lg font-semibold">${tour.price}</span>
+              <span className="text-lg font-semibold">{formatMoney(tour.price, tour.currency)}</span>
               <span className="text-xs text-muted-foreground"> / person</span>
             </div>
             {layout === "vertical" && tour.badge === "ALL INCLUSIVE" && (

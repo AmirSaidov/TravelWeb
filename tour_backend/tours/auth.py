@@ -55,6 +55,10 @@ def create_access_token(*, user: User, expires_in: timedelta | None = None) -> s
 class JWTAuthentication(BaseAuthentication):
     keyword = "Bearer"
 
+    def authenticate_header(self, request) -> str:
+        # Enables DRF to return 401 (not 403) when authentication is required.
+        return self.keyword
+
     def authenticate(self, request) -> Optional[Tuple[User, None]]:
         auth = request.headers.get("Authorization") or ""
         if not auth:
@@ -71,4 +75,3 @@ class JWTAuthentication(BaseAuthentication):
             raise AuthenticationFailed("User not found.") from exc
 
         return (user, None)
-

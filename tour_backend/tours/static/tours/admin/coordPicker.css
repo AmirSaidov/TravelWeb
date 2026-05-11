@@ -1,0 +1,60 @@
+#coord-picker {
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12);
+}
+
+.coord-picker__search {
+  margin-top: 8px;
+}
+
+.coord-picker__search input {
+  width: min(520px, 100%);
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  outline: none;
+}
+
+.coord-picker__search input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+}
+
+.coord-picker__results {
+  width: min(520px, 100%);
+  margin-top: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  display: none;
+}
+
+.coord-picker__results--floating {
+  width: 360px;
+  max-height: 240px;
+  overflow: auto;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18);
+}
+
+.coord-picker__results button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.coord-picker__results button:hover {
+  background: #f3f4f6;
+}
+
+.coord-picker__results .muted {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.coord-picker__hint {
+  font-size: 12px;
+  color: #6b7280;
+}

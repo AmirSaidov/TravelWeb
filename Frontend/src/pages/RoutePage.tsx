@@ -3,7 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useQuery } from "@tanstack/react-query";
-import { geocodePlace } from "@/lib/mapboxGeocoding";
+import { geocodePlace, geocodeSuggestions } from "@/lib/mapboxGeocoding";
+import { applyRussianLabels } from "@/lib/mapboxLabels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -17,6 +18,9 @@ const RoutePage = () => {
   const [from, setFrom] = useState<Coord | null>(null);
   const [fromText, setFromText] = useState("");
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<Array<{ lng: number; lat: number; title: string; subtitle?: string }>>([]);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const suggestTimer = useRef<number | null>(null);
   const { data: kgCenter = null } = useQuery({
     queryKey: ["kg-center-route-page"],
     enabled: Boolean(mapboxToken),
@@ -43,6 +47,33 @@ const RoutePage = () => {
       { enableHighAccuracy: true, timeout: 12000 }
     );
   }, [toText]);
+
+  useEffect(() => {
+    if (!mapboxToken) return;
+    const q = fromText.trim();
+    if (suggestTimer.current) window.clearTimeout(suggestTimer.current);
+    if (q.length < 3) {
+      setSuggestions([]);
+      setSuggestOpen(false);
+      return;
+    }
+
+    suggestTimer.current = window.setTimeout(async () => {
+      try {
+        const items = await geocodeSuggestions({ token: mapboxToken, query: q, country: "kg", limit: 6 });
+        // If user typed something else while awaiting, keep it simple: still show results for latest input only.
+        setSuggestions(items);
+        setSuggestOpen(true);
+      } catch {
+        setSuggestions([]);
+        setSuggestOpen(false);
+      }
+    }, 250);
+
+    return () => {
+      if (suggestTimer.current) window.clearTimeout(suggestTimer.current);
+    };
+  }, [fromText, mapboxToken]);
 
   const { data: toCoord = null, isLoading: toLoading } = useQuery({
     queryKey: ["geocode", "to", toText],
@@ -87,14 +118,18 @@ const RoutePage = () => {
     if (!mapboxToken || !mapContainerRef.current || mapRef.current) return;
     (mapboxgl as any).setTelemetryEnabled?.(false);
     mapboxgl.accessToken = mapboxToken;
+    const fallbackCenter: Coord = { lng: 74.6, lat: 41.2 };
+    const initialCenter = kgCenter ?? fallbackCenter;
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/outdoors-v12",
+      center: [initialCenter.lng, initialCenter.lat],
       zoom: 6.2,
       attributionControl: false,
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-left");
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+    map.on("style.load", () => applyRussianLabels(map));
     mapRef.current = map;
 
     map.on("load", () => {
@@ -123,7 +158,7 @@ const RoutePage = () => {
       map.remove();
       mapRef.current = null;
     };
-  }, [mapboxToken]);
+  }, [kgCenter, mapboxToken]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -131,6 +166,14 @@ const RoutePage = () => {
     if (from || toCoord) return;
     map.flyTo({ center: [kgCenter.lng, kgCenter.lat], zoom: 6.2, duration: 700 });
   }, [from, kgCenter, toCoord]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (from) return;
+    if (!toCoord) return;
+    map.flyTo({ center: [toCoord.lng, toCoord.lat], zoom: 7.4, duration: 700, essential: true });
+  }, [from, toCoord]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -213,12 +256,37 @@ const RoutePage = () => {
           <div className="mt-6 space-y-2">
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Start point</div>
             <div className="flex gap-2">
-              <Input
-                value={fromText}
-                onChange={(e) => setFromText(e.target.value)}
-                placeholder="Your location (optional)"
-                className="h-11 rounded-xl"
-              />
+              <div className="relative flex-1">
+                <Input
+                  value={fromText}
+                  onChange={(e) => setFromText(e.target.value)}
+                  onFocus={() => suggestions.length > 0 && setSuggestOpen(true)}
+                  onBlur={() => window.setTimeout(() => setSuggestOpen(false), 150)}
+                  placeholder="Your location (optional)"
+                  className="h-11 rounded-xl"
+                />
+                {suggestOpen && suggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 overflow-hidden rounded-xl border border-border bg-card shadow-elevated">
+                    {suggestions.map((s, idx) => (
+                      <button
+                        key={`${s.lng}:${s.lat}:${idx}`}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setFrom({ lng: s.lng, lat: s.lat });
+                          setFromText(s.title);
+                          setGeoError(null);
+                          setSuggestOpen(false);
+                        }}
+                        className="w-full border-b border-border/60 px-3 py-2 text-left text-sm hover:bg-muted/60 last:border-b-0"
+                      >
+                        <div className="font-medium">{s.title}</div>
+                        {s.subtitle && <div className="mt-0.5 text-xs text-muted-foreground">{s.subtitle}</div>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Button type="button" className="h-11 rounded-xl" onClick={geocodeFromText} disabled={!mapboxToken}>
                 Set
               </Button>

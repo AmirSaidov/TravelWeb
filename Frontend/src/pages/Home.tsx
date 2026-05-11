@@ -95,7 +95,7 @@ const Home = () => {
               transition={{ duration: 0.9, ease: [0.32, 0.72, 0, 1] }}
             />
           </AnimatePresence>
-          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-0 bg-black/10" />
           <div className="absolute inset-0 gradient-hero-overlay" />
         </div>
 
@@ -106,16 +106,16 @@ const Home = () => {
               <div className="fixed inset-0 z-20" onClick={() => setActiveSearchTab(null)} />
             )}
 
-            <div className="relative z-30 flex flex-col gap-2 overflow-visible rounded-3xl bg-white p-2 text-foreground shadow-elevated ring-1 ring-black/5 md:flex-row md:items-center md:gap-0 md:divide-x md:divide-border/60 md:overflow-hidden md:rounded-[999px]">
+            <div className="relative z-30 flex flex-col gap-2 overflow-visible rounded-3xl bg-white p-2 text-foreground shadow-elevated ring-1 ring-black/10 md:flex-row md:items-center md:gap-0 md:divide-x md:divide-border/80 md:overflow-hidden md:rounded-[999px]">
               {/* WHERE */}
               <Popover open={activeSearchTab === "where"} onOpenChange={(open) => setActiveSearchTab(open ? "where" : null)}>
                 <div className="relative z-10 flex w-full md:w-auto md:flex-[1.5]">
                   <PopoverTrigger asChild>
-                    <button className="group relative w-full cursor-pointer rounded-full px-6 py-3 text-left transition-all hover:bg-muted/40 sm:px-8">
+                    <button className="group relative w-full cursor-pointer rounded-full px-6 py-3 text-left transition-all hover:bg-black/5 sm:px-8">
                       {activeSearchTab === "where" && (
                         <motion.div
                           layoutId="active-search-tab"
-                          className="absolute inset-0 rounded-full bg-muted/60 shadow-sm"
+                          className="absolute inset-0 rounded-full bg-black/5 shadow-sm"
                           initial={false}
                           transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         />
@@ -128,7 +128,7 @@ const Home = () => {
                           value={where}
                           onChange={(e) => setWhere(e.target.value)}
                           placeholder={t("search.whereP")}
-                          className="mt-0.5 w-full bg-transparent text-[15px] font-medium text-muted-foreground/85 outline-none placeholder:text-muted-foreground/70 group-hover:text-foreground"
+                          className="mt-0.5 w-full bg-transparent text-[15px] font-medium text-muted-foreground outline-none placeholder:text-muted-foreground/70 group-hover:text-foreground"
                         />
                       </div>
                     </button>
@@ -174,11 +174,11 @@ const Home = () => {
               <Popover open={activeSearchTab === "when"} onOpenChange={(open) => setActiveSearchTab(open ? "when" : null)}>
                 <div className="relative z-10 flex w-full md:w-auto md:flex-1">
                   <PopoverTrigger asChild>
-                    <button className="group relative w-full cursor-pointer rounded-full px-6 py-3 text-left transition-all hover:bg-muted/40 sm:px-8">
+                    <button className="group relative w-full cursor-pointer rounded-full px-6 py-3 text-left transition-all hover:bg-black/5 sm:px-8">
                       {activeSearchTab === "when" && (
                         <motion.div
                           layoutId="active-search-tab"
-                          className="absolute inset-0 rounded-full bg-muted/60 shadow-sm"
+                          className="absolute inset-0 rounded-full bg-black/5 shadow-sm"
                           initial={false}
                           transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         />
@@ -187,7 +187,7 @@ const Home = () => {
                         <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground transition-colors group-hover:text-foreground">
                           {t("search.datesTab")}
                         </div>
-                        <div className="mt-0.5 text-[15px] font-medium text-muted-foreground/85 group-hover:text-foreground">
+                        <div className="mt-0.5 text-[15px] font-medium text-muted-foreground group-hover:text-foreground">
                           {datesLabel}
                         </div>
                       </div>
@@ -362,10 +362,10 @@ const Home = () => {
 
               <button
                 onClick={onSearch}
-                className="group z-10 flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-6 text-primary-foreground transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_10px_30px_rgba(15,23,41,0.35)] active:scale-95 md:ml-2 md:w-auto"
+                className="group z-10 flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-6 text-primary-foreground transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary/95 hover:shadow-elevated active:scale-95 md:ml-2 md:w-14 md:rounded-full md:px-0"
               >
                 <Search className="h-6 w-6 stroke-[2.5px] transition-transform duration-300 group-hover:scale-110" />
-                <span className="text-sm font-semibold">{t("search.search")}</span>
+                <span className="sr-only">{t("search.search")}</span>
               </button>
             </div>
           </div>
@@ -398,11 +398,12 @@ const Home = () => {
           </button>
         </div>
 
-        <div className="mt-8 grid h-[820px] grid-cols-1 gap-6 md:h-[600px] md:grid-cols-12">
+        {/* Important: avoid fixed heights on small screens so cards never overflow/overlap next sections */}
+        <div className="mt-8 grid grid-cols-1 gap-6 md:h-[600px] md:grid-cols-12">
           <button
             type="button"
             onClick={() => popular[0] && navigate(`/tour/${popular[0].slug}`)}
-            className="group relative overflow-hidden rounded-3xl shadow-elevated ring-1 ring-border/60 md:col-span-8"
+            className="group relative aspect-[4/3] overflow-hidden rounded-2xl shadow-elevated ring-1 ring-black/10 md:col-span-8 md:aspect-auto md:h-full"
           >
             <img
               src={popular[0]?.hero}
@@ -421,13 +422,13 @@ const Home = () => {
             </div>
           </button>
 
-          <div className="grid grid-rows-2 gap-6 md:col-span-4">
+          <div className="grid gap-6 md:col-span-4 md:grid-rows-2 md:h-full">
             {[popular[1], popular[2]].filter(Boolean).map((p) => (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => navigate(`/tour/${p.slug}`)}
-                className="group relative overflow-hidden rounded-3xl shadow-elevated ring-1 ring-border/60"
+                className="group relative aspect-[16/9] overflow-hidden rounded-2xl shadow-elevated ring-1 ring-black/10 md:aspect-auto md:h-full"
               >
                 <img src={p.hero} alt={p.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_40%,rgba(0,0,0,0.6)_100%)]" />
@@ -447,7 +448,7 @@ const Home = () => {
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {curated.map((tr) => (
             <Link key={tr.id} to={`/tour/${tr.slug}`} className="group block">
-              <div className="aspect-[4/3] overflow-hidden rounded-3xl bg-muted shadow-card ring-1 ring-border/60">
+              <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-card ring-1 ring-black/10">
                 <img src={tr.hero} alt={tr.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
               </div>
               <div className="mt-3 flex items-start justify-between gap-3">
@@ -470,7 +471,7 @@ const Home = () => {
 
       {/* CTA */}
       <section className="container-page pb-24 pt-6">
-        <div className="relative overflow-hidden rounded-[2rem] bg-black p-10 shadow-elevated ring-1 ring-border/60 sm:p-14">
+        <div className="relative overflow-hidden rounded-[2rem] bg-black p-10 shadow-elevated ring-1 ring-black/10 sm:p-14">
           <img
             alt="Share your Kyrgyzstan"
             src="https://images.unsplash.com/photo-1482192505345-5655af888cc4?auto=format&fit=crop&w=2400&q=80"

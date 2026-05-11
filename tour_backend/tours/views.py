@@ -14,6 +14,7 @@ from .services import booking_service
 
 from .serializers import ReviewSerializer, TourSerializer
 from .auth import create_access_token
+from .currency import convert_money, get_currency_config, normalize_currency, quantize_money
 
 PAYMENT_HOLD_HOURS = 24
 
@@ -37,6 +38,31 @@ def get_request_user(request):
     if request_user and getattr(request_user, "id", None):
         return request_user
     return None
+
+
+def _requested_currency(request) -> str:
+    return normalize_currency(getattr(request, "query_params", {}).get("currency"))
+
+
+def _tour_currency(tour: Tour) -> str:
+    return normalize_currency(getattr(tour, "currency", "")) or "KGS"
+
+
+def _convert_amount(amount, from_currency: str, request) -> tuple[str, str]:
+    """
+    Returns (amount_str, currency_code) for the requested currency (if known),
+    otherwise returns original amount/currency.
+    """
+    req_cur = _requested_currency(request)
+    src_cur = normalize_currency(from_currency) or "KGS"
+    if req_cur:
+        cfg = get_currency_config()
+        if cfg.rate_to_base(req_cur) is None:
+            req_cur = ""
+    if req_cur and req_cur != src_cur:
+        out = convert_money(amount, from_currency=src_cur, to_currency=req_cur)
+        return str(quantize_money(out)), req_cur
+    return str(quantize_money(amount)), src_cur
 
 
 class RegisterView(APIView):
@@ -162,11 +188,13 @@ class BookingListCreateView(APIView):
             date=date,
         )
 
+        total_price_str, out_currency = _convert_amount(total_price, from_currency=_tour_currency(booking.tour), request=request)
         return Response(
             {
                 'booking_id': booking.id,
                 'status': booking.status,
-                'total_price': str(total_price),
+                'total_price': total_price_str,
+                'currency': out_currency,
                 'available_places': available_places_after_booking,
                 'payment_due_at': _payment_due_at(booking).isoformat() if _payment_due_at(booking) else None,
             },
@@ -241,6 +269,7 @@ class MyBookingsView(APIView):
                 b.save(update_fields=["status"])
 
             due_at = _payment_due_at(b)
+            price_str, price_currency = _convert_amount(b.tour.price, from_currency=_tour_currency(b.tour), request=request)
             data.append(
                 {
                     "id": b.id,
@@ -253,7 +282,8 @@ class MyBookingsView(APIView):
                     "tour": {
                         "id": b.tour.id,
                         "title": b.tour.title,
-                        "price": str(b.tour.price),
+                        "price": price_str,
+                        "currency": price_currency,
                         "location": b.tour.location,
                         "duration": b.tour.duration,
                         "image": b.tour.image,
@@ -320,13 +350,15 @@ class PaymentCreateView(APIView):
             booking.status = Booking.Status.CONFIRMED
             booking.save(update_fields=["status"])
 
+        amount_str, out_currency = _convert_amount(payment.amount, from_currency=_tour_currency(booking.tour), request=request)
         return Response(
             {
                 "payment_id": payment.id,
                 "booking_id": booking.id,
                 "payment_status": payment.status,
                 "booking_status": booking.status,
-                "amount": str(payment.amount),
+                "amount": amount_str,
+                "currency": out_currency,
             },
             status=status.HTTP_201_CREATED,
         )
@@ -385,6 +417,8 @@ class ReviewCreateView(APIView):
             status=status.HTTP_201_CREATED,
         )
 class TourListView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         tours = Tour.objects.annotate(
             rating_avg=Coalesce(Avg("review__rating"), 0.0),
@@ -410,11 +444,13 @@ class TourListView(APIView):
         skip = (page - 1) * limit
         tours = tours[skip: skip + limit]
 
-        serializer = TourSerializer(tours, many=True)
+        serializer = TourSerializer(tours, many=True, context={"request": request})
         return Response(serializer.data)
 
 
 class TourDetailView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request, tour_id):
         try:
             tour = Tour.objects.annotate(
@@ -426,5 +462,18 @@ class TourDetailView(APIView):
                 {'detail': 'Тур не найден'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        serializer = TourSerializer(tour)
+        serializer = TourSerializer(tour, context={"request": request})
         return Response(serializer.data)
+
+
+class CurrencyRatesView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        cfg = get_currency_config()
+        return Response(
+            {
+                "base": cfg.base,
+                "rates_to_base": {k: str(v) for k, v in sorted(cfg.rates_to_base.items())},
+            }
+        )

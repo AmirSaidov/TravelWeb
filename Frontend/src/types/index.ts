@@ -7,6 +7,7 @@ export interface Tour {
   title: string;
   region: string;
   location: string; // POI text
+  coordinates?: { lat: number; lng: number } | null;
   description: string;
   longDescription: string;
   price: number; // per person

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toursApi } from "@/lib/api";
 import { TourCard } from "@/components/ui-bits/TourCard";
 import type { TourType } from "@/types";
+import { useAppStore } from "@/store/app";
 
 const groups: { id: TourType; title: string; subtitle: string }[] = [
   { id: "horseback", title: "Horseback adventures", subtitle: "Multi-day rides across alpine pastures" },
@@ -15,9 +16,10 @@ const groups: { id: TourType; title: string; subtitle: string }[] = [
 
 const Experiences = () => {
   const { t } = useTranslation();
+  const currency = useAppStore((s) => s.currency);
   const { data: tours = [] } = useQuery({
-    queryKey: ["tours"],
-    queryFn: () => toursApi.getTours(),
+    queryKey: ["tours", currency],
+    queryFn: () => toursApi.getTours(currency),
   });
   return (
     <div className="container-page py-12">

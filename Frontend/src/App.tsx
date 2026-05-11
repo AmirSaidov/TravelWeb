@@ -24,10 +24,10 @@ const App = () => (
       theme={{
         algorithm: antdTheme.defaultAlgorithm,
         token: {
-          colorPrimary: "#0f172a",
-          colorInfo: "#0f172a",
-          colorSuccess: "#10b981",
-          borderRadius: 14,
+          colorPrimary: "#ef4444",
+          colorInfo: "#ef4444",
+          colorSuccess: "#22c55e",
+          borderRadius: 24,
           fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
         },
       }}

@@ -24,6 +24,8 @@ class Tour(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=8, blank=True, default="")
     location = models.CharField(max_length=255)
+    lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     duration = models.IntegerField(help_text="Duration in days")
     difficulty = models.CharField(max_length=50)
     types = models.JSONField(default=list, blank=True)

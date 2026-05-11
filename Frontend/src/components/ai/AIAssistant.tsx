@@ -14,19 +14,7 @@ type AiChatResponse = { answer: string };
 
 const createId = () => Math.random().toString(36).slice(2);
 
-const initial: Msg[] = [
-  { id: "1", role: "user", text: "Can you help me plan a 3-day trip to Issyk-Kul lake? I'm interested in hiking and local culture.", ts: Date.now() - 60_000 },
-  {
-    id: "2", role: "assistant", ts: Date.now() - 30_000,
-    text: "Of course! Issyk-Kul is magical. I've drafted a perfect 3-day itinerary that balances the alpine beauty of the north shore with the cultural heritage of Karakol.",
-    timeline: [
-      { day: 1, title: "Cholpon-Ata & Petroglyphs", tag: "Culture", text: "Visit the open-air museum and relax by the crystal clear water.", img: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=160&q=80" },
-      { day: 2, title: "Karakol & Jeti-Oguz", tag: "Nature", text: "Explore the \"Seven Bulls\" rock formations and the wooden Dungan Mosque.", img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=160&q=80" },
-      { day: 3, title: "Ala-Köl Day Hike", tag: "Adventure", text: "Trek to the alpine lake at 3,500m for jaw-dropping turquoise views.", img: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=160&q=80" },
-    ],
-    pricePerPerson: 685,
-  },
-];
+const initial: Msg[] = [];
 
 export const AIAssistant = () => {
   const { t } = useTranslation();
@@ -72,7 +60,7 @@ export const AIAssistant = () => {
   };
 
   const reset = () => {
-    setMessages(initial);
+    setMessages([]);
     setIsLoading(false);
   };
 

@@ -19,16 +19,16 @@ import { format, parseISO } from "date-fns";
 const Dashboard = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { user, bookings, saved, signIn, cancelBooking } = useAppStore();
+  const { user, bookings, saved, signIn, cancelBooking, currency } = useAppStore();
   const [tab, setTab] = useState<"bookings" | "saved" | "profile">("bookings");
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
 
   const { data: serverBookings = [], isLoading: serverBookingsLoading } = useQuery({
-    queryKey: ["my-bookings"],
+    queryKey: ["my-bookings", currency],
     enabled: Boolean(user),
-    queryFn: () => bookingApi.myBookings(),
+    queryFn: () => bookingApi.myBookings(currency),
   });
   const upcoming = bookings.filter((b) => b.status === "upcoming");
   const past = bookings.filter((b) => b.status !== "upcoming");
@@ -45,8 +45,8 @@ const Dashboard = () => {
   const [pastOpen, setPastOpen] = useState(false);
 
   const { data: apiTours = [] } = useQuery({
-    queryKey: ["tours"],
-    queryFn: () => toursApi.getTours(),
+    queryKey: ["tours", currency],
+    queryFn: () => toursApi.getTours(currency),
   });
 
   const savedTours = apiTours.filter((tr) => saved.includes(tr.id));
@@ -142,7 +142,7 @@ const Dashboard = () => {
   const cancelServerBooking = async (bookingId: number) => {
     try {
       await bookingApi.cancel({ bookingId });
-      await queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+      await queryClient.invalidateQueries({ queryKey: ["my-bookings", currency] });
       toast({ title: t("dashboard.bookingCancelled") });
     } catch (err: any) {
       toast({
@@ -155,8 +155,8 @@ const Dashboard = () => {
 
   const payServerBooking = async (bookingId: number) => {
     try {
-      await bookingApi.pay({ bookingId });
-      await queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+      await bookingApi.pay({ bookingId, currency });
+      await queryClient.invalidateQueries({ queryKey: ["my-bookings", currency] });
       toast({ title: "Payment successful" });
     } catch (err: any) {
       toast({

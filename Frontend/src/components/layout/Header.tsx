@@ -1,6 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/app";
 import {
@@ -10,6 +11,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { CURRENCIES, currencyForLang } from "@/lib/currencyPref";
+import { normalizeCurrency } from "@/lib/currency";
 
 const langs = [
   { code: "en", label: "ENG" },
@@ -22,6 +25,9 @@ export const Header = () => {
   const user = useAppStore((s) => s.user);
   const signOut = useAppStore((s) => s.signOut);
   const openAuthModal = useAppStore((s) => s.openAuthModal);
+  const currency = useAppStore((s) => s.currency);
+  const currencyMode = useAppStore((s) => s.currencyMode);
+  const setCurrency = useAppStore((s) => s.setCurrency);
 
   const navItems = [
     { to: "/explore", label: t("nav.explore") },
@@ -33,18 +39,25 @@ export const Header = () => {
   const setLang = (code: string) => {
     i18n.changeLanguage(code);
     localStorage.setItem("lang", code);
+    if (currencyMode === "auto") {
+      setCurrency(currencyForLang(code), "auto");
+    }
   };
   const currentLang = langs.find((l) => l.code === i18n.language) ?? langs[0];
+  const currentCurrency = normalizeCurrency(currency) || "KGS";
+
+  useEffect(() => {
+    if (currencyMode !== "auto") return;
+    const next = currencyForLang(i18n.language);
+    if (currentCurrency !== next) setCurrency(next, "auto");
+  }, [currencyMode, currentCurrency, i18n.language, setCurrency]);
 
   return (
-    <header className="sticky top-0 z-[60] border-b border-border/60 bg-background/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-[60] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="container-page flex min-h-16 items-center justify-between gap-2 py-3 md:grid md:grid-cols-[auto_1fr_auto] md:gap-3 md:py-0">
         <Link to="/" className="flex min-w-0 items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground font-display font-bold">
-            K
-          </div>
-          <span className="hidden truncate font-display text-base font-semibold tracking-tight sm:inline md:text-lg">
-            Kyrgyzstan Travel
+          <span className="truncate font-display text-base font-semibold tracking-tight text-primary sm:text-lg">
+            Kyrgyz Travel
           </span>
         </Link>
 
@@ -56,9 +69,7 @@ export const Header = () => {
               className={({ isActive }) =>
                 `relative text-sm font-medium transition-colors ${
                   isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                } after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:w-full after:bg-brand after:transition-transform ${
-                  "after:scale-x-0"
-                } [&.active]:after:scale-x-100`
+                } after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:w-full after:bg-foreground/80 after:transition-transform after:scale-x-0 [&.active]:after:scale-x-100`
               }
             >
               {n.label}
@@ -69,7 +80,27 @@ export const Header = () => {
         <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 rounded-full px-2.5 text-xs font-medium sm:px-4 sm:text-sm">
+              <Button variant="outline" size="sm" className="h-9 px-2.5 text-xs font-medium sm:px-4 sm:text-sm">
+                {currentCurrency}
+                <ChevronDown className="ml-1 h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setCurrency(currencyForLang(i18n.language), "auto")}>
+                Auto ({currencyForLang(i18n.language)})
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {CURRENCIES.map((c) => (
+                <DropdownMenuItem key={c} onClick={() => setCurrency(c, "manual")}>
+                  {c}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 px-2.5 text-xs font-medium sm:px-4 sm:text-sm">
                 {currentLang.label}
                 <ChevronDown className="ml-1 h-3.5 w-3.5" />
               </Button>
@@ -86,8 +117,8 @@ export const Header = () => {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="rounded-full" aria-label="Menu">
-                  <img src={user.avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
+                <Button variant="outline" size="sm" aria-label="Menu">
+                  <img src={user.avatar} alt="" className="h-6 w-6 object-cover" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -109,14 +140,14 @@ export const Header = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 rounded-full px-3 text-xs sm:px-4 sm:text-sm"
+                className="h-9 px-3 text-xs sm:px-4 sm:text-sm"
                 onClick={() => openAuthModal("login")}
               >
                 {t("nav.login")}
               </Button>
               <Button
                 size="sm"
-                className="hidden h-9 rounded-full bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90 min-[420px]:inline-flex sm:px-4 sm:text-sm"
+                className="hidden h-9 bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90 min-[420px]:inline-flex sm:px-4 sm:text-sm"
                 onClick={() => openAuthModal("register")}
               >
                 {t("nav.signup")}
