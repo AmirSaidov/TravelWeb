@@ -329,7 +329,7 @@ const MapPage = () => {
           ) : (
             <div className="relative">
               <div ref={mapContainerRef} className="h-[70vh] min-h-[520px] w-full lg:h-[calc(100vh-4rem-340px)]" />
-              <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2">
+              <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-center gap-2">
                 <Button
                   type="button"
                   variant={is3d ? "default" : "secondary"}
