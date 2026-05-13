@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -19,11 +19,12 @@ import { format, parseISO } from "date-fns";
 const Dashboard = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { user, bookings, saved, signIn, cancelBooking, currency } = useAppStore();
+  const { user, bookings, saved, signIn, cancelBooking, currency, setAvatar } = useAppStore();
   const [tab, setTab] = useState<"bookings" | "saved" | "profile">("bookings");
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: serverBookings = [], isLoading: serverBookingsLoading } = useQuery({
     queryKey: ["my-bookings", currency],
@@ -137,6 +138,27 @@ const Dashboard = () => {
     if (!user) return;
     signIn({ ...user, name, email, phone });
     toast({ title: t("dashboard.profileSaved") });
+  };
+
+  const onAvatarFile = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Avatar", description: "Please choose an image file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 1024 * 1024) {
+      toast({ title: "Avatar", description: "Image is too large (max 1MB).", variant: "destructive" });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = typeof reader.result === "string" ? reader.result : "";
+      if (!url) return;
+      setAvatar(url);
+      toast({ title: "Avatar updated" });
+    };
+    reader.readAsDataURL(file);
   };
 
   const cancelServerBooking = async (bookingId: number) => {
@@ -424,11 +446,17 @@ const Dashboard = () => {
             <aside className="space-y-6">
               <div className="rounded-3xl border border-border bg-card p-8 shadow-card">
                 <div className="flex flex-col items-center text-center">
-                  <img
-                    src={user?.avatar}
-                    alt=""
-                    className="h-20 w-20 rounded-full object-cover ring-4 ring-background"
-                  />
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt=""
+                      className="h-20 w-20 rounded-full object-cover ring-4 ring-background"
+                    />
+                  ) : (
+                    <div className="grid h-20 w-20 place-items-center rounded-full bg-muted text-lg font-semibold text-foreground ring-4 ring-background">
+                      {(user?.name || user?.email || "U").trim().slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
                   <div className="mt-5 font-display text-3xl font-semibold">{user?.name ?? "Traveler"}</div>
                   <div className="mt-1 text-sm text-muted-foreground">{t("dashboard.title")}</div>
                   <Button variant="outline" className="mt-6 h-11 w-full rounded-xl" onClick={() => setTab("profile")}>
@@ -484,11 +512,36 @@ const Dashboard = () => {
         <TabsContent value="profile" className="mt-6 max-w-xl">
           <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
             <div className="flex items-center gap-4">
-              <img src={user?.avatar} alt="" className="h-16 w-16 rounded-full object-cover" />
+              {user?.avatar ? (
+                <img src={user.avatar} alt="" className="h-16 w-16 rounded-full object-cover" />
+              ) : (
+                <div className="grid h-16 w-16 place-items-center rounded-full bg-muted text-base font-semibold text-foreground">
+                  {(user?.name || user?.email || "U").trim().slice(0, 1).toUpperCase()}
+                </div>
+              )}
               <div>
                 <div className="font-display text-lg font-semibold">{user?.name}</div>
                 <div className="text-sm text-muted-foreground">{user?.email}</div>
               </div>
+            </div>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                e.target.value = "";
+                onAvatarFile(file);
+              }}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" className="h-10 rounded-xl" onClick={() => avatarInputRef.current?.click()}>
+                Change avatar…
+              </Button>
+              <Button type="button" variant="outline" className="h-10 rounded-xl" onClick={() => setAvatar("")}>
+                Remove avatar
+              </Button>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">

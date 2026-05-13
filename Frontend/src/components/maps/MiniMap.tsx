@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { applyRussianLabels } from "@/lib/mapboxLabels";
+import { applyKyrgyzstanOnlyMap } from "@/lib/kyrgyzstanOnlyMap";
 
 export function MiniMap({
   center,
@@ -35,7 +36,10 @@ export function MiniMap({
 
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
-    map.on("style.load", () => applyRussianLabels(map));
+    map.on("style.load", () => {
+      void applyKyrgyzstanOnlyMap(map, { borderWidth: 1.5, paddingDegrees: 0.25 });
+      applyRussianLabels(map);
+    });
 
     mapRef.current = map;
 

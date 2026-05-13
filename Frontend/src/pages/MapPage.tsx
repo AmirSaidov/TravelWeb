@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { toursApi } from "@/lib/api";
 import { geocodePlace } from "@/lib/mapboxGeocoding";
 import { applyRussianLabels } from "@/lib/mapboxLabels";
+import { applyKyrgyzstanOnlyMap } from "@/lib/kyrgyzstanOnlyMap";
 import { formatMoney } from "@/lib/currency";
 import { useAppStore } from "@/store/app";
 
@@ -212,6 +213,7 @@ const MapPage = () => {
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/outdoors-v12",
+      center: [74.6, 41.2],
       zoom: 6.2,
       attributionControl: false,
     });
@@ -219,6 +221,7 @@ const MapPage = () => {
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-left");
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
     map.on("style.load", () => {
+      void applyKyrgyzstanOnlyMap(map);
       applyRussianLabels(map);
       apply3d(map, is3d);
     });

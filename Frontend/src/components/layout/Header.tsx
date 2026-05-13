@@ -1,7 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/app";
 import {
@@ -25,9 +25,11 @@ export const Header = () => {
   const user = useAppStore((s) => s.user);
   const signOut = useAppStore((s) => s.signOut);
   const openAuthModal = useAppStore((s) => s.openAuthModal);
+  const setAvatar = useAppStore((s) => s.setAvatar);
   const currency = useAppStore((s) => s.currency);
   const currencyMode = useAppStore((s) => s.currencyMode);
   const setCurrency = useAppStore((s) => s.setCurrency);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const navItems = [
     { to: "/explore", label: t("nav.explore") },
@@ -45,6 +47,7 @@ export const Header = () => {
   };
   const currentLang = langs.find((l) => l.code === i18n.language) ?? langs[0];
   const currentCurrency = normalizeCurrency(currency) || "KGS";
+  const initials = (user?.name || user?.email || "U").trim().slice(0, 1).toUpperCase();
 
   useEffect(() => {
     if (currencyMode !== "auto") return;
@@ -117,15 +120,52 @@ export const Header = () => {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" aria-label="Menu">
-                  <img src={user.avatar} alt="" className="h-6 w-6 object-cover" />
+                <Button variant="outline" size="sm" aria-label="Menu" className="h-9 w-9 rounded-full p-0 overflow-hidden">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover" />
+                  ) : (
+                    <span className="grid h-full w-full place-items-center bg-muted text-xs font-semibold text-foreground">
+                      {initials}
+                    </span>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    e.target.value = "";
+                    if (!file) return;
+                    if (!file.type.startsWith("image/")) return;
+                    if (file.size > 1024 * 1024) return; // 1MB cap to keep localStorage happy
+
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const url = typeof reader.result === "string" ? reader.result : "";
+                      if (!url) return;
+                      setAvatar(url);
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
                 <div className="px-2 py-1.5 text-sm">
                   <div className="font-medium">{user.name}</div>
                   <div className="text-xs text-muted-foreground">{user.email}</div>
                 </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    avatarInputRef.current?.click();
+                  }}
+                >
+                  Change avatar…
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAvatar("")}>Remove avatar</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild><Link to="/dashboard">{t("nav.dashboard")}</Link></DropdownMenuItem>
                 <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>

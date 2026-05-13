@@ -5,6 +5,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useQuery } from "@tanstack/react-query";
 import { geocodePlace, geocodeSuggestions } from "@/lib/mapboxGeocoding";
 import { applyRussianLabels } from "@/lib/mapboxLabels";
+import { applyKyrgyzstanOnlyMap } from "@/lib/kyrgyzstanOnlyMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -129,7 +130,10 @@ const RoutePage = () => {
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-left");
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
-    map.on("style.load", () => applyRussianLabels(map));
+    map.on("style.load", () => {
+      void applyKyrgyzstanOnlyMap(map);
+      applyRussianLabels(map);
+    });
     mapRef.current = map;
 
     map.on("load", () => {

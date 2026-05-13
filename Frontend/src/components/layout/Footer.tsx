@@ -20,9 +20,30 @@ export const Footer = ({ variant = "dark" }: { variant?: "dark" | "light" }) => 
               {t("footer.about")}
             </p>
             <div className="flex gap-3">
-              <a href="#" className="grid h-9 w-9 place-items-center border border-border bg-card hover:bg-accent transition-colors"><Instagram className="h-4 w-4" /></a>
-              <a href="#" className="grid h-9 w-9 place-items-center border border-border bg-card hover:bg-accent transition-colors"><Twitter className="h-4 w-4" /></a>
-              <a href="#" className="grid h-9 w-9 place-items-center border border-border bg-card hover:bg-accent transition-colors"><Facebook className="h-4 w-4" /></a>
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                className="grid h-9 w-9 place-items-center border border-border bg-card hover:bg-accent transition-colors"
+              >
+                <Instagram className="h-4 w-4" />
+              </a>
+              <a
+                href="https://x.com"
+                target="_blank"
+                rel="noreferrer"
+                className="grid h-9 w-9 place-items-center border border-border bg-card hover:bg-accent transition-colors"
+              >
+                <Twitter className="h-4 w-4" />
+              </a>
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noreferrer"
+                className="grid h-9 w-9 place-items-center border border-border bg-card hover:bg-accent transition-colors"
+              >
+                <Facebook className="h-4 w-4" />
+              </a>
             </div>
           </div>
 
@@ -39,10 +60,10 @@ export const Footer = ({ variant = "dark" }: { variant?: "dark" | "light" }) => 
           <div>
             <h4 className="mb-4 font-display text-base font-semibold">{t("footer.info")}</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#" className="hover:text-primary">{t("footer.travelVisa")}</a></li>
-              <li><a href="#" className="hover:text-primary">{t("footer.bestTime")}</a></li>
-              <li><a href="#" className="hover:text-primary">{t("footer.etiquette")}</a></li>
-              <li><a href="#" className="hover:text-primary">{t("footer.safety")}</a></li>
+              <li><Link to="/info/visa" className="hover:text-primary">{t("footer.travelVisa")}</Link></li>
+              <li><Link to="/info/best-time" className="hover:text-primary">{t("footer.bestTime")}</Link></li>
+              <li><Link to="/info/etiquette" className="hover:text-primary">{t("footer.etiquette")}</Link></li>
+              <li><Link to="/info/safety" className="hover:text-primary">{t("footer.safety")}</Link></li>
             </ul>
           </div>
 
@@ -59,9 +80,9 @@ export const Footer = ({ variant = "dark" }: { variant?: "dark" | "light" }) => 
         <div className={`mt-12 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center`}>
           <p>© 2026 Kyrgyzstan Travel. {t("footer.rights")} Licensed tour operator #KG-4015.</p>
           <div className="flex gap-5">
-            <a href="#" className="hover:text-primary">{t("footer.privacy")}</a>
-            <a href="#" className="hover:text-primary">{t("footer.terms")}</a>
-            <a href="#" className="hover:text-primary">{t("footer.sitemap")}</a>
+            <Link to="/privacy" className="hover:text-primary">{t("footer.privacy")}</Link>
+            <Link to="/terms" className="hover:text-primary">{t("footer.terms")}</Link>
+            <Link to="/sitemap" className="hover:text-primary">{t("footer.sitemap")}</Link>
           </div>
         </div>
       </div>

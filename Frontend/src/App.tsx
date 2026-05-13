@@ -15,6 +15,10 @@ import RoutePage from "./pages/RoutePage";
 import { AuthPage } from "./pages/Auth";
 import { AuthRoute } from "./pages/AuthRoute";
 import NotFound from "./pages/NotFound.tsx";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Sitemap from "./pages/Sitemap";
+import InfoPage from "./pages/InfoPage";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +49,10 @@ const App = () => (
               <Route path="/experiences" element={<Experiences />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/route" element={<RoutePage />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/sitemap" element={<Sitemap />} />
+              <Route path="/info/:topic" element={<InfoPage />} />
             </Route>
             <Route path="/login" element={<AuthRoute mode="login" />} />
             <Route path="/register" element={<AuthRoute mode="register" />} />

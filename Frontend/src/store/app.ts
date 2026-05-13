@@ -21,6 +21,7 @@ interface AppState {
   currency: string; // display currency
   currencyMode: "auto" | "manual";
   signIn: (u: User, token?: string) => void;
+  setAvatar: (avatar: string) => void;
   signOut: () => void;
   openAuthModal: (mode?: "login" | "register") => void;
   closeAuthModal: () => void;
@@ -51,6 +52,11 @@ export const useAppStore = create<AppState>()(
             saved: userChanged ? [] : s.saved,
             bookings: userChanged ? [] : s.bookings,
           };
+        }),
+      setAvatar: (avatar) =>
+        set((s) => {
+          if (!s.user) return s as any;
+          return { user: { ...s.user, avatar: String(avatar || "") } };
         }),
       signOut: () => {
         tokenStorage.clear();

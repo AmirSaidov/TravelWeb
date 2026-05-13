@@ -1,0 +1,9 @@
+{
+  "installCommand": "npm -C Frontend ci",
+  "buildCommand": "npm -C Frontend run build",
+  "outputDirectory": "Frontend/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+

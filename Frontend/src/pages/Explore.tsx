@@ -10,7 +10,10 @@ import type { Difficulty, TourType } from "@/types";
 import { Button, Checkbox, Drawer, Empty, Input, Pagination as AntPagination, Slider } from "antd";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app";
-import { formatMoney } from "@/lib/currency";
+
+const PRICE_MIN = 50;
+const PRICE_MAX = 1500;
+const PRICE_STEP = 10;
 
 const durationBuckets = [
   { id: "1-3", label: "1–3 days", match: (d: number) => d <= 3 },
@@ -50,7 +53,9 @@ const Explore = () => {
   const tripDays =
     from && to ? Math.max(1, differenceInCalendarDays(parseISO(to), parseISO(from)) + 1) : null;
   // Defaults should show all tours until the user narrows filters.
-  const [price, setPrice] = useState<[number, number]>([0, 100000]);
+  const [price, setPrice] = useState<[number, number]>([PRICE_MIN, PRICE_MAX]);
+  const [minText, setMinText] = useState(() => String(PRICE_MIN));
+  const [maxText, setMaxText] = useState(() => String(PRICE_MAX));
   const [duration, setDuration] = useState<string[]>([]);
   const [diff, setDiff] = useState<Difficulty[]>([]);
   const [types, setTypes] = useState<TourType[]>(initialCat ? [initialCat] : []);
@@ -58,6 +63,23 @@ const Explore = () => {
   const [sort, setSort] = useState<"popular" | "price_asc" | "price_desc">("popular");
   const pageFromUrl = Math.max(1, Number(params.get("page") || 1) || 1);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const currencyLabel = String(currency || "").toUpperCase();
+
+  const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+  const snap = (n: number, step: number) => Math.round(n / step) * step;
+  const setPriceSafe = (nextMin: number, nextMax: number) => {
+    const a = snap(clamp(Number(nextMin), PRICE_MIN, PRICE_MAX), PRICE_STEP);
+    const b = snap(clamp(Number(nextMax), PRICE_MIN, PRICE_MAX), PRICE_STEP);
+    const minV = Math.min(a, b);
+    const maxV = Math.max(a, b);
+    setPrice([minV, maxV]);
+  };
+
+  useEffect(() => {
+    // Keep inputs in sync when slider/filters update state.
+    setMinText(String(price[0]));
+    setMaxText(String(price[1]));
+  }, [price[0], price[1]]);
 
   const { data: tours = [], isLoading, isError } = useQuery({
     queryKey: ["tours", currency],
@@ -162,26 +184,59 @@ const Explore = () => {
           <div>
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-semibold">{t("explore.priceRange")}</span>
-              <span className="text-xs text-muted-foreground">USD</span>
+              <span className="text-xs text-muted-foreground">{currencyLabel}</span>
             </div>
             <Slider
-              min={50}
-              max={1500}
-              step={10}
+              min={PRICE_MIN}
+              max={PRICE_MAX}
+              step={PRICE_STEP}
               value={price}
               range
-              onChange={(v) => Array.isArray(v) && setPrice([Number(v[0]), Number(v[1])] as [number, number])}
+              onChange={(v) => Array.isArray(v) && setPriceSafe(Number(v[0]), Number(v[1]))}
             />
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-xl border border-border px-3 py-2">
                 <div className="text-muted-foreground">Min</div>
-                <div className="font-semibold">{formatMoney(price[0], currency)}</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    inputMode="numeric"
+                    type="number"
+                    min={PRICE_MIN}
+                    max={PRICE_MAX}
+                    step={PRICE_STEP}
+                    value={minText}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setMinText(v);
+                      const n = Number(v);
+                      if (Number.isFinite(n)) setPriceSafe(n, price[1]);
+                    }}
+                    onBlur={() => setPriceSafe(Number(minText), price[1])}
+                    className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <span className="shrink-0 text-[11px] text-muted-foreground">{currencyLabel}</span>
+                </div>
               </div>
               <div className="rounded-xl border border-border px-3 py-2">
                 <div className="text-muted-foreground">Max</div>
-                <div className="font-semibold">
-                  {formatMoney(price[1], currency)}
-                  {price[1] >= 1500 ? "+" : ""}
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    inputMode="numeric"
+                    type="number"
+                    min={PRICE_MIN}
+                    max={PRICE_MAX}
+                    step={PRICE_STEP}
+                    value={maxText}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setMaxText(v);
+                      const n = Number(v);
+                      if (Number.isFinite(n)) setPriceSafe(price[0], n);
+                    }}
+                    onBlur={() => setPriceSafe(price[0], Number(maxText))}
+                    className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <span className="shrink-0 text-[11px] text-muted-foreground">{currencyLabel}</span>
                 </div>
               </div>
             </div>
@@ -283,26 +338,59 @@ const Explore = () => {
                   <div>
                     <div className="mb-3 flex items-center justify-between">
                       <span className="text-sm font-semibold">{t("explore.priceRange")}</span>
-                      <span className="text-xs text-muted-foreground">USD</span>
+                      <span className="text-xs text-muted-foreground">{currencyLabel}</span>
                     </div>
                     <Slider
                       range
-                      min={50}
-                      max={1500}
-                      step={10}
+                      min={PRICE_MIN}
+                      max={PRICE_MAX}
+                      step={PRICE_STEP}
                       value={price}
-                      onChange={(v) => Array.isArray(v) && setPrice([Number(v[0]), Number(v[1])] as [number, number])}
+                      onChange={(v) => Array.isArray(v) && setPriceSafe(Number(v[0]), Number(v[1]))}
                     />
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-xl border border-border px-3 py-2">
                         <div className="text-muted-foreground">Min</div>
-                        <div className="font-semibold">{formatMoney(price[0], currency)}</div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <input
+                            inputMode="numeric"
+                            type="number"
+                            min={PRICE_MIN}
+                            max={PRICE_MAX}
+                            step={PRICE_STEP}
+                            value={minText}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setMinText(v);
+                              const n = Number(v);
+                              if (Number.isFinite(n)) setPriceSafe(n, price[1]);
+                            }}
+                            onBlur={() => setPriceSafe(Number(minText), price[1])}
+                            className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                          <span className="shrink-0 text-[11px] text-muted-foreground">{currencyLabel}</span>
+                        </div>
                       </div>
                       <div className="rounded-xl border border-border px-3 py-2">
                         <div className="text-muted-foreground">Max</div>
-                        <div className="font-semibold">
-                          {formatMoney(price[1], currency)}
-                          {price[1] >= 1500 ? "+" : ""}
+                        <div className="mt-1 flex items-center gap-2">
+                          <input
+                            inputMode="numeric"
+                            type="number"
+                            min={PRICE_MIN}
+                            max={PRICE_MAX}
+                            step={PRICE_STEP}
+                            value={maxText}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setMaxText(v);
+                              const n = Number(v);
+                              if (Number.isFinite(n)) setPriceSafe(price[0], n);
+                            }}
+                            onBlur={() => setPriceSafe(price[0], Number(maxText))}
+                            className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                          <span className="shrink-0 text-[11px] text-muted-foreground">{currencyLabel}</span>
                         </div>
                       </div>
                     </div>
