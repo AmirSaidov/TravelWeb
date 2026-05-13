@@ -400,6 +400,23 @@ class ReviewCreateView(APIView):
         if not Tour.objects.filter(id=tour_id).exists():
             return Response({"error": "Tour not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Only allow reviews from users who have a confirmed booking for the tour.
+        has_confirmed_booking = Booking.objects.filter(
+            user=user, tour_id=tour_id, status=Booking.Status.CONFIRMED
+        ).exists()
+        if not has_confirmed_booking:
+            return Response(
+                {"error": "You can only review tours you have booked."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Prevent duplicate reviews per user/tour.
+        if Review.objects.filter(user=user, tour_id=tour_id).exists():
+            return Response(
+                {"error": "You have already reviewed this tour."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         review = Review.objects.create(
             user=user,
             tour_id=tour_id,

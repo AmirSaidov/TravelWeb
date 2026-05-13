@@ -372,13 +372,6 @@ const Home = () => {
 
           <div className="mt-12 text-center drop-shadow-[0_10px_30px_rgba(0,0,0,0.35)] sm:mt-16">
             <h1 className="font-display text-4xl font-semibold leading-[1.05] sm:text-6xl text-balance">{t("home.heroHeadline")}</h1>
-            <Button
-              type="button"
-              onClick={() => navigate("/explore")}
-              className="mt-6 h-12 rounded-full bg-white px-8 font-semibold text-primary shadow-elevated hover:bg-white/95"
-            >
-              {t("home.flexibleBtn")}
-            </Button>
           </div>
         </div>
       </section>

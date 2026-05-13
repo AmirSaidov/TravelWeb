@@ -155,7 +155,7 @@
     }
 
     function onSearchInput() {
-      if (!searchInput || !searchResultsEl) return;
+      if (!searchInput) return;
       var q = String(searchInput.value || "").trim();
       if (q.length < 3) return hideResults();
       lastQuery = q;
