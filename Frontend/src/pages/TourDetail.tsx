@@ -1,14 +1,16 @@
 ﻿import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Share2, Heart, MapPin, Mountain, Tent, Utensils, Check, Star } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { format, parseISO } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
 import { enUS, ru } from "date-fns/locale";
 import { bookingApi, reviewsApi, toursApi } from "@/lib/api";
 import { geocodePlace } from "@/lib/mapboxGeocoding";
 import { RatingStars } from "@/components/ui-bits/RatingStars";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/store/app";
@@ -24,6 +26,8 @@ const TourDetail = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAppStore((s) => s.user);
+  const openAuthModal = useAppStore((s) => s.openAuthModal);
   const currency = useAppStore((s) => s.currency);
   const { data: tour, isLoading } = useQuery({
     queryKey: ["tour", slug, currency],
@@ -40,12 +44,17 @@ const TourDetail = () => {
       return reviewsApi.getByTourId(tour.id);
     },
   });
+  const { data: myBookings = [] } = useQuery({
+    queryKey: ["my-bookings", currency],
+    enabled: Boolean(user),
+    queryFn: async () => bookingApi.myBookings(currency),
+  });
   const [showMore, setShowMore] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [activePhoto, setActivePhoto] = useState(0);
   const saved = useAppStore((s) => (tour ? s.saved.includes(tour.id) : false));
   const toggleSave = useAppStore((s) => s.toggleSave);
   const addBooking = useAppStore((s) => s.addBooking);
-  const user = useAppStore((s) => s.user);
-  const openAuthModal = useAppStore((s) => s.openAuthModal);
 
   const [myRating, setMyRating] = useState(5);
   const [myComment, setMyComment] = useState("");
@@ -76,8 +85,6 @@ const TourDetail = () => {
   });
   const mapCenter = tour?.coordinates ? { lng: tour.coordinates.lng, lat: tour.coordinates.lat } : geoCenter;
 
-  const [start, setStart] = useState("2026-08-14");
-  const [end, setEnd] = useState("2026-08-21");
   const [guests, setGuests] = useState(1);
   const subtotal = (tour?.price ?? 0) * guests;
   const eco = 25;
@@ -93,13 +100,17 @@ const TourDetail = () => {
     }
 
     try {
-      const booking = await bookingApi.createBooking({ tourId: tour.id, peopleCount: guests, date: start, currency });
+      const booking = await bookingApi.createBooking({ tourId: tour.id, peopleCount: guests, currency });
+      const startDate = (booking as any)?.date
+        ? String((booking as any).date)
+        : new Date().toISOString().slice(0, 10);
+      const endDate = addDays(parseISO(startDate), Math.max(1, tour.durationDays)).toISOString().slice(0, 10);
 
       addBooking({
         id: String(booking.booking_id),
         tourId: tour.id,
-        startDate: start,
-        endDate: end,
+        startDate,
+        endDate,
         guests,
         total,
         status: "upcoming",
@@ -169,6 +180,15 @@ const TourDetail = () => {
     );
   }
 
+  const gallery = (tour.gallery && tour.gallery.length > 0 ? tour.gallery : [tour.hero]).filter(Boolean);
+  const safePhoto = (i: number) => gallery[i] ?? gallery[0];
+  const hasReviewed = Boolean(user && reviews.some((r) => String(r.user?.id) === String(user.id)));
+  const canReview = Boolean(
+    user &&
+      Array.isArray(myBookings) &&
+      myBookings.some((b: any) => String(b?.tour?.id) === String(tour.id) && String(b?.status) === "confirmed")
+  );
+
   return (
     <div className="container-page py-10">
       {/* Title */}
@@ -200,14 +220,56 @@ const TourDetail = () => {
       {/* Gallery */}
       <div className="mt-6 grid gap-3 overflow-hidden rounded-3xl md:grid-cols-3">
         <div className="relative md:col-span-2 md:row-span-2 aspect-[4/3] md:aspect-auto">
-          <img src={tour.gallery[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={safePhoto(0)} alt="" className="absolute inset-0 h-full w-full object-cover" />
         </div>
-        <div className="aspect-[4/3] overflow-hidden bg-muted"><img src={tour.gallery[1]} alt="" className="h-full w-full object-cover" /></div>
+        <div className="aspect-[4/3] overflow-hidden bg-muted">
+          <img src={safePhoto(1)} alt="" className="h-full w-full object-cover" />
+        </div>
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          <img src={tour.gallery[2] ?? tour.gallery[0]} alt="" className="h-full w-full object-cover" />
-          <Button variant="outline" size="sm" className="absolute bottom-3 right-3 rounded-xl bg-white/95 text-xs shadow-card hover:bg-white">?? {t("tour.showAll")}</Button>
+          <img src={safePhoto(2)} alt="" className="h-full w-full object-cover" />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setActivePhoto(0);
+              setGalleryOpen(true);
+            }}
+            className="absolute bottom-3 right-3 rounded-xl bg-white/95 text-xs shadow-card hover:bg-white"
+          >
+            {t("tour.showAll")}
+          </Button>
         </div>
       </div>
+
+      <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+        <DialogContent className="w-[min(1000px,calc(100vw-1.25rem))] max-w-none rounded-3xl p-0">
+          <DialogHeader className="border-b border-border px-6 py-4">
+            <DialogTitle className="font-display text-base font-semibold">{t("tour.showAll")}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 p-4 md:grid-cols-[1fr_280px]">
+            <div className="relative overflow-hidden rounded-2xl bg-muted">
+              <img src={safePhoto(activePhoto)} alt="" className="h-[60vh] w-full object-contain" />
+            </div>
+            <div className="grid max-h-[60vh] grid-cols-2 gap-2 overflow-auto pr-1 md:grid-cols-1">
+              {gallery.map((src, idx) => (
+                <button
+                  key={`${src}:${idx}`}
+                  type="button"
+                  onClick={() => setActivePhoto(idx)}
+                  className={cn(
+                    "relative overflow-hidden rounded-xl ring-1 ring-border transition hover:ring-2 hover:ring-brand",
+                    idx === activePhoto ? "ring-2 ring-brand" : "",
+                  )}
+                  aria-label={`Photo ${idx + 1}`}
+                >
+                  <img src={src} alt="" className="h-24 w-full object-cover md:h-28" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_380px]">
         <div>
@@ -297,46 +359,53 @@ const TourDetail = () => {
                 )}
               </div>
 
-              <div className="mt-3 flex items-center gap-1">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const v = i + 1;
-                  const active = v <= myRating;
-                  return (
-                    <button
-                      key={v}
-                      type="button"
-                      disabled={!user || postingReview}
-                      onClick={() => setMyRating(v)}
-                      className={cn(
-                        "grid h-9 w-9 place-items-center rounded-full transition",
-                        !user || postingReview ? "opacity-50" : "hover:bg-muted/60",
-                      )}
-                      aria-label={`Rate ${v} stars`}
+              {!user ? (
+                <div className="mt-4 text-sm text-muted-foreground">Sign in to leave a review.</div>
+              ) : hasReviewed ? (
+                <div className="mt-4 text-sm text-muted-foreground">You already left a review for this tour.</div>
+              ) : !canReview ? (
+                <div className="mt-4 text-sm text-muted-foreground">You can leave a review after you book this tour.</div>
+              ) : (
+                <>
+                  <div className="mt-3 flex items-center gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => {
+                      const v = i + 1;
+                      const active = v <= myRating;
+                      return (
+                        <button
+                          key={v}
+                          type="button"
+                          disabled={postingReview}
+                          onClick={() => setMyRating(v)}
+                          className={cn("grid h-9 w-9 place-items-center rounded-full transition hover:bg-muted/60")}
+                          aria-label={`Rate ${v} stars`}
+                        >
+                          <Star className={cn("h-5 w-5", active ? "fill-gold text-gold" : "text-muted-foreground")} />
+                        </button>
+                      );
+                    })}
+                    <span className="ml-2 text-sm text-muted-foreground">{myRating}/5</span>
+                  </div>
+
+                  <Textarea
+                    className="mt-3 rounded-2xl"
+                    placeholder="Write your experience…"
+                    value={myComment}
+                    onChange={(e) => setMyComment(e.target.value)}
+                    disabled={postingReview}
+                  />
+
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      onClick={submitReview}
+                      disabled={postingReview}
+                      className="h-11 rounded-xl bg-brand px-6 text-brand-foreground hover:bg-brand/90"
                     >
-                      <Star className={cn("h-5 w-5", active ? "fill-gold text-gold" : "text-muted-foreground")} />
-                    </button>
-                  );
-                })}
-                <span className="ml-2 text-sm text-muted-foreground">{myRating}/5</span>
-              </div>
-
-              <Textarea
-                className="mt-3 rounded-2xl"
-                placeholder="Write your experience…"
-                value={myComment}
-                onChange={(e) => setMyComment(e.target.value)}
-                disabled={!user || postingReview}
-              />
-
-              <div className="mt-3 flex justify-end">
-                <Button
-                  onClick={submitReview}
-                  disabled={!user || postingReview}
-                  className="h-11 rounded-xl bg-brand px-6 text-brand-foreground hover:bg-brand/90"
-                >
-                  {postingReview ? "Posting…" : "Post review"}
-                </Button>
-              </div>
+                      {postingReview ? "Posting…" : "Post review"}
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -367,16 +436,6 @@ const TourDetail = () => {
             </div>
 
             <div className="mt-4 overflow-hidden rounded-2xl border border-border">
-              <div className="grid grid-cols-2">
-                <label className="border-r border-border p-3">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("tour.startDate")}</span>
-                  <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="mt-1 h-8 border-0 bg-transparent px-0 py-0 text-sm font-medium shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
-                </label>
-                <label className="p-3">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("tour.endDate")}</span>
-                  <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="mt-1 h-8 border-0 bg-transparent px-0 py-0 text-sm font-medium shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
-                </label>
-              </div>
               <label className="block border-t border-border p-3">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("tour.guestsLabel")}</span>
                 <Input type="number" min={1} max={tour.maxGuests} value={guests} onChange={(e) => setGuests(Math.max(1, Math.min(tour.maxGuests, +e.target.value || 1)))} className="mt-1 h-8 border-0 bg-transparent px-0 py-0 text-sm font-medium shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0" />

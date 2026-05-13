@@ -121,6 +121,17 @@ const Dashboard = () => {
       if (!kgCenter) return null;
       return buildStaticMapUrl({ token: mapboxToken, width: 520, height: 320, center: { lng: kgCenter.lng, lat: kgCenter.lat, zoom: 5.2 } });
     }
+    if (markers.length === 1 && kgCenter) {
+      // Avoid "auto" zooming too far in when there is only a single visited point.
+      // Keep Kyrgyzstan in a general overview and show the marker on top.
+      return buildStaticMapUrl({
+        token: mapboxToken,
+        width: 520,
+        height: 320,
+        markers,
+        center: { lng: kgCenter.lng, lat: kgCenter.lat, zoom: 5.2 },
+      });
+    }
     return buildStaticMapUrl({ token: mapboxToken, width: 520, height: 320, markers });
   }, [kgCenter, mapboxToken, visitedCoords]);
 
