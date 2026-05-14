@@ -4,7 +4,7 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
-      nav: { explore: "Explore", map: "Map", experiences: "Experiences", dashboard: "Dashboard", ai: "AI", login: "Sign in", signup: "Sign up" },
+      nav: { explore: "Explore", map: "Map", experiences: "Experiences", dashboard: "Dashboard", ai: "AI Assistant", login: "Sign in", signup: "Sign up" },
       hero: {
         pill: "AI-Powered Travel Guide",
         title: "Kyrgyzstan — where mountains touch the sky",
@@ -53,7 +53,9 @@ const resources = {
         stays: "stays",
         person: "person",
         night: "night",
-        heroHeadline: "Try our AI features.",
+        heroHeadline: "Plan your trip with an AI assistant.",
+        aiCta: "Open AI assistant",
+        aiCtaSub: "Get a route, packing list, hotels, and tips in seconds.",
         flexibleBtn: "I'm flexible",
         popularTitle: "Popular destinations",
         viewAll: "View all",
@@ -98,7 +100,7 @@ const resources = {
   },
   ru: {
     translation: {
-      nav: { explore: "Туры", map: "Карта", experiences: "Опыт", dashboard: "Кабинет", ai: "AI", login: "Войти", signup: "Регистрация" },
+      nav: { explore: "Туры", map: "Карта", experiences: "Опыт", dashboard: "Кабинет", ai: "AI ассистент", login: "Войти", signup: "Регистрация" },
       hero: {
         pill: "AI-помощник путешественника",
         title: "Кыргызстан — где горы касаются неба",
@@ -147,7 +149,9 @@ const resources = {
         stays: "жилья",
         person: "чел",
         night: "ночь",
-        heroHeadline: "Попробуйте функции AI.",
+        heroHeadline: "Планируйте путешествие с AI‑ассистентом.",
+        aiCta: "Открыть AI ассистента",
+        aiCtaSub: "Маршрут, список вещей, отели и советы — за пару секунд.",
         flexibleBtn: "Я гибкий",
         popularTitle: "Популярные направления",
         viewAll: "Смотреть все",
@@ -192,7 +196,7 @@ const resources = {
   },
   kg: {
     translation: {
-      nav: { explore: "Турлар", map: "Карта", experiences: "Тажрыйба", dashboard: "Кабинет", ai: "AI", login: "Кирүү", signup: "Каттоо" },
+      nav: { explore: "Турлар", map: "Карта", experiences: "Тажрыйба", dashboard: "Кабинет", ai: "AI жардамчы", login: "Кирүү", signup: "Каттоо" },
       hero: {
         pill: "AI саякат жардамчысы",
         title: "Кыргызстан — тоолор асманга жеткен жер",
@@ -241,7 +245,9 @@ const resources = {
         stays: "турак",
         person: "адам",
         night: "түн",
-        heroHeadline: "AI функцияларын колдонуп көрүңүз.",
+        heroHeadline: "AI жардамчы менен сапарыңызды пландаңыз.",
+        aiCta: "AI жардамчыны ачуу",
+        aiCtaSub: "Маршрут, тизмек, мейманкана жана кеңештер — бир нече секундда.",
         flexibleBtn: "Каалагандай",
         popularTitle: "Популярдуу багыттар",
         viewAll: "Баарын көрүү",

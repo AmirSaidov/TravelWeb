@@ -372,6 +372,16 @@ const Home = () => {
 
           <div className="mt-12 text-center drop-shadow-[0_10px_30px_rgba(0,0,0,0.35)] sm:mt-16">
             <h1 className="font-display text-4xl font-semibold leading-[1.05] sm:text-6xl text-balance">{t("home.heroHeadline")}</h1>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button
+                type="button"
+                className="h-11 rounded-full bg-white px-6 font-semibold text-foreground hover:bg-white/95"
+                onClick={() => navigate("/ai")}
+              >
+                {t("home.aiCta")}
+              </Button>
+              <p className="max-w-xl text-sm text-white/90">{t("home.aiCtaSub")}</p>
+            </div>
           </div>
         </div>
       </section>
