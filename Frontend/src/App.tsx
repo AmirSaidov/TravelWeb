@@ -12,6 +12,7 @@ import MapPage from "./pages/MapPage";
 import Dashboard from "./pages/Dashboard";
 import Experiences from "./pages/Experiences";
 import RoutePage from "./pages/RoutePage";
+import AIAssistantPage from "./pages/AIAssistantPage";
 import { AuthPage } from "./pages/Auth";
 import { AuthRoute } from "./pages/AuthRoute";
 import NotFound from "./pages/NotFound.tsx";
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/experiences" element={<Experiences />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/route" element={<RoutePage />} />
+              <Route path="/ai" element={<AIAssistantPage />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/sitemap" element={<Sitemap />} />

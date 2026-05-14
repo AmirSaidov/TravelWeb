@@ -111,7 +111,7 @@ const Home = () => {
               <Popover open={activeSearchTab === "where"} onOpenChange={(open) => setActiveSearchTab(open ? "where" : null)}>
                 <div className="relative z-10 flex w-full md:w-auto md:flex-[1.5]">
                   <PopoverTrigger asChild>
-                    <button className="group relative w-full cursor-pointer rounded-full px-6 py-3 text-left transition-all hover:bg-black/5 sm:px-8">
+                    <button className="group relative w-full cursor-pointer mr-4 rounded-full px-6 py-3 text-left transition-all hover:bg-black/5 sm:px-8">
                       {activeSearchTab === "where" && (
                         <motion.div
                           layoutId="active-search-tab"
@@ -362,7 +362,7 @@ const Home = () => {
 
               <button
                 onClick={onSearch}
-                className="group z-10 flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-6 text-primary-foreground transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary/95 hover:shadow-elevated active:scale-95 md:ml-2 md:w-14 md:rounded-full md:px-0"
+                className="group z-10 flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-6 text-primary-foreground transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary/95 hover:shadow-elevated active:scale-95 md:mx-2 md:w-14 md:rounded-full md:px-0"
               >
                 <Search className="h-6 w-6 stroke-[2.5px] transition-transform duration-300 group-hover:scale-110" />
                 <span className="sr-only">{t("search.search")}</span>

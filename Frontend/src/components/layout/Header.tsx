@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -81,6 +81,17 @@ export const Header = () => {
         </nav>
 
         <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
+          <Button
+            asChild
+            size="sm"
+            className="h-9 rounded-full bg-brand px-3 text-xs text-brand-foreground hover:bg-brand/90 sm:px-4 sm:text-sm"
+          >
+            <Link to="/ai" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              {t("nav.ai")}
+            </Link>
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 px-2.5 text-xs font-medium sm:px-4 sm:text-sm">

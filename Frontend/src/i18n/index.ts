@@ -4,7 +4,7 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
-      nav: { explore: "Explore", map: "Map", experiences: "Experiences", dashboard: "Dashboard", login: "Sign in", signup: "Sign up" },
+      nav: { explore: "Explore", map: "Map", experiences: "Experiences", dashboard: "Dashboard", ai: "AI", login: "Sign in", signup: "Sign up" },
       hero: {
         pill: "AI-Powered Travel Guide",
         title: "Kyrgyzstan — where mountains touch the sky",
@@ -53,7 +53,7 @@ const resources = {
         stays: "stays",
         person: "person",
         night: "night",
-        heroHeadline: "Not sure where to go? Perfect.",
+        heroHeadline: "Try our AI features.",
         flexibleBtn: "I'm flexible",
         popularTitle: "Popular destinations",
         viewAll: "View all",
@@ -98,7 +98,7 @@ const resources = {
   },
   ru: {
     translation: {
-      nav: { explore: "Туры", map: "Карта", experiences: "Опыт", dashboard: "Кабинет", login: "Войти", signup: "Регистрация" },
+      nav: { explore: "Туры", map: "Карта", experiences: "Опыт", dashboard: "Кабинет", ai: "AI", login: "Войти", signup: "Регистрация" },
       hero: {
         pill: "AI-помощник путешественника",
         title: "Кыргызстан — где горы касаются неба",
@@ -147,7 +147,7 @@ const resources = {
         stays: "жилья",
         person: "чел",
         night: "ночь",
-        heroHeadline: "Не знаете, куда поехать? Отлично.",
+        heroHeadline: "Попробуйте функции AI.",
         flexibleBtn: "Я гибкий",
         popularTitle: "Популярные направления",
         viewAll: "Смотреть все",
@@ -192,7 +192,7 @@ const resources = {
   },
   kg: {
     translation: {
-      nav: { explore: "Турлар", map: "Карта", experiences: "Тажрыйба", dashboard: "Кабинет", login: "Кирүү", signup: "Каттоо" },
+      nav: { explore: "Турлар", map: "Карта", experiences: "Тажрыйба", dashboard: "Кабинет", ai: "AI", login: "Кирүү", signup: "Каттоо" },
       hero: {
         pill: "AI саякат жардамчысы",
         title: "Кыргызстан — тоолор асманга жеткен жер",
@@ -241,7 +241,7 @@ const resources = {
         stays: "турак",
         person: "адам",
         night: "түн",
-        heroHeadline: "Кайда барууну билбейсизби? Сонун.",
+        heroHeadline: "AI функцияларын колдонуп көрүңүз.",
         flexibleBtn: "Каалагандай",
         popularTitle: "Популярдуу багыттар",
         viewAll: "Баарын көрүү",
