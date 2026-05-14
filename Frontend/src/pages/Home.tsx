@@ -10,6 +10,7 @@ import { toursApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Home = () => {
   const { t } = useTranslation();
@@ -22,10 +23,15 @@ const Home = () => {
   const [dateMode, setDateMode] = useState<"dates" | "flexible">("dates");
   const [guests, setGuests] = useState({ adults: 0, children: 0, infants: 0, pets: 0 });
 
+  const unsplash = (photoId: string, w: number, q = 60) =>
+    `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=${w}&q=${q}`;
+  const unsplashSrcSet = (photoId: string) =>
+    [640, 960, 1280, 1600, 2000].map((w) => `${unsplash(photoId, w)} ${w}w`).join(", ");
+
   const heroImages = [
-    "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2400&q=80",
-    "https://images.unsplash.com/photo-1482192505345-5655af888cc4?auto=format&fit=crop&w=2400&q=80",
-    "https://images.unsplash.com/photo-1443890923422-7819ed4101c0?auto=format&fit=crop&w=2400&q=80",
+    { id: "photo-1506905925346-21bda4d32df4", alt: "" },
+    { id: "photo-1482192505345-5655af888cc4", alt: "" },
+    { id: "photo-1443890923422-7819ed4101c0", alt: "" },
   ];
 
   useEffect(() => {
@@ -45,7 +51,7 @@ const Home = () => {
     { city: "Naryn, Kol-Suu", sub: "Turquoise lake in cliffs", iconSrc: "/icons/rec-kolsuu.png", scale: 1.8 },
   ];
 
-  const { data: tours = [] } = useQuery({
+  const { data: tours = [], isLoading: toursLoading } = useQuery({
     queryKey: ["tours"],
     queryFn: () => toursApi.getTours(),
   });
@@ -85,9 +91,14 @@ const Home = () => {
         <div className="absolute inset-0 overflow-hidden bg-black">
           <AnimatePresence mode="sync" initial={false}>
             <motion.img
-              key={heroImages[heroIndex]}
-              src={heroImages[heroIndex]}
-              alt=""
+              key={heroImages[heroIndex].id}
+              src={unsplash(heroImages[heroIndex].id, 1600)}
+              srcSet={unsplashSrcSet(heroImages[heroIndex].id)}
+              sizes="100vw"
+              alt={heroImages[heroIndex].alt}
+              decoding="async"
+              loading={heroIndex === 0 ? "eager" : "lazy"}
+              fetchPriority={heroIndex === 0 ? "high" : "low"}
               className="absolute inset-0 h-full w-full object-cover"
               initial={{ x: "100%" }}
               animate={{ x: "0%" }}
@@ -403,44 +414,70 @@ const Home = () => {
 
         {/* Important: avoid fixed heights on small screens so cards never overflow/overlap next sections */}
         <div className="mt-8 grid grid-cols-1 gap-6 md:h-[600px] md:grid-cols-12">
-          <button
-            type="button"
-            onClick={() => popular[0] && navigate(`/tour/${popular[0].slug}`)}
-            className="group relative aspect-[4/3] overflow-hidden rounded-2xl shadow-elevated ring-1 ring-black/10 md:col-span-8 md:aspect-auto md:h-full"
-          >
-            <img
-              src={popular[0]?.hero}
-              alt={popular[0]?.title}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_35%,rgba(0,0,0,0)_60%,rgba(0,0,0,0.55)_100%)]" />
-            <div className="absolute inset-x-0 bottom-0 p-7 text-left text-white">
-              <span className="inline-flex w-fit rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-primary shadow-sm backdrop-blur">
-                Most visited
-              </span>
-              <div className="mt-3">
-                <div className="font-display text-2xl font-semibold">{popular[0]?.title}</div>
-                <div className="text-sm text-white/85">{popular[0]?.region}</div>
+          {toursLoading ? (
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-card shadow-elevated ring-1 ring-black/10 md:col-span-8 md:aspect-auto md:h-full">
+              <Skeleton className="absolute inset-0 h-full w-full rounded-none" />
+              <div className="absolute inset-x-0 bottom-0 p-7">
+                <Skeleton className="h-6 w-28 rounded-full bg-white/30" />
+                <div className="mt-3 space-y-2">
+                  <Skeleton className="h-7 w-3/5 bg-white/30" />
+                  <Skeleton className="h-4 w-2/5 bg-white/20" />
+                </div>
               </div>
             </div>
-          </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => popular[0] && navigate(`/tour/${popular[0].slug}`)}
+              className="group relative aspect-[4/3] overflow-hidden rounded-2xl shadow-elevated ring-1 ring-black/10 md:col-span-8 md:aspect-auto md:h-full"
+            >
+              <img
+                src={popular[0]?.hero}
+                alt={popular[0]?.title}
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_35%,rgba(0,0,0,0)_60%,rgba(0,0,0,0.55)_100%)]" />
+              <div className="absolute inset-x-0 bottom-0 p-7 text-left text-white">
+                <span className="inline-flex w-fit rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-primary shadow-sm backdrop-blur">
+                  Most visited
+                </span>
+                <div className="mt-3">
+                  <div className="font-display text-2xl font-semibold">{popular[0]?.title}</div>
+                  <div className="text-sm text-white/85">{popular[0]?.region}</div>
+                </div>
+              </div>
+            </button>
+          )}
 
           <div className="grid gap-6 md:col-span-4 md:grid-rows-2 md:h-full">
-            {[popular[1], popular[2]].filter(Boolean).map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => navigate(`/tour/${p.slug}`)}
-                className="group relative aspect-[16/9] overflow-hidden rounded-2xl shadow-elevated ring-1 ring-black/10 md:aspect-auto md:h-full"
-              >
-                <img src={p.hero} alt={p.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_40%,rgba(0,0,0,0.6)_100%)]" />
-                <div className="absolute inset-x-0 bottom-0 p-6 text-left text-white">
-                  <div className="font-display text-xl font-semibold">{p.title}</div>
-                  <div className="text-xs text-white/85">{p.location}</div>
-                </div>
-              </button>
-            ))}
+            {toursLoading
+              ? Array.from({ length: 2 }).map((_, i) => (
+                  <div
+                    key={`popular-skeleton-${i}`}
+                    className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-card shadow-elevated ring-1 ring-black/10 md:aspect-auto md:h-full"
+                  >
+                    <Skeleton className="absolute inset-0 h-full w-full rounded-none" />
+                    <div className="absolute inset-x-0 bottom-0 p-6">
+                      <Skeleton className="h-6 w-3/5 bg-white/30" />
+                      <Skeleton className="mt-2 h-4 w-2/5 bg-white/20" />
+                    </div>
+                  </div>
+                ))
+              : [popular[1], popular[2]].filter(Boolean).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => navigate(`/tour/${p.slug}`)}
+                    className="group relative aspect-[16/9] overflow-hidden rounded-2xl shadow-elevated ring-1 ring-black/10 md:aspect-auto md:h-full"
+                  >
+                    <img src={p.hero} alt={p.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_40%,rgba(0,0,0,0.6)_100%)]" />
+                    <div className="absolute inset-x-0 bottom-0 p-6 text-left text-white">
+                      <div className="font-display text-xl font-semibold">{p.title}</div>
+                      <div className="text-xs text-white/85">{p.location}</div>
+                    </div>
+                  </button>
+                ))}
           </div>
         </div>
       </section>
@@ -449,37 +486,59 @@ const Home = () => {
       <section className="container-page py-10">
         <h2 className="font-display text-2xl font-semibold sm:text-3xl">Curated Kyrgyz Experiences</h2>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {curated.map((tr) => (
-            <Link key={tr.id} to={`/tour/${tr.slug}`} className="group block">
-              <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-card ring-1 ring-black/10">
-                <img src={tr.hero} alt={tr.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              </div>
-              <div className="mt-3 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-foreground">{tr.title}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">{tr.region}</div>
+          {toursLoading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div key={`curated-skeleton-${i}`} className="group block">
+                  <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-card ring-1 ring-black/10">
+                    <Skeleton className="h-full w-full rounded-none" />
+                  </div>
+                  <div className="mt-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Skeleton className="h-4 w-4/5" />
+                      <Skeleton className="h-3 w-2/5" />
+                    </div>
+                    <Skeleton className="h-4 w-10 rounded-full" />
+                  </div>
+                  <div className="mt-2">
+                    <Skeleton className="h-5 w-24" />
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1 text-xs text-foreground">
-                  <Star className="h-4 w-4 fill-foreground" />
-                  <span className="font-medium">{tr.rating.toFixed(2)}</span>
-                </div>
-              </div>
-              <div className="mt-2 text-sm font-semibold text-foreground">
-                ${tr.price} <span className="text-xs font-normal text-muted-foreground">/ person</span>
-              </div>
-            </Link>
-          ))}
+              ))
+            : curated.map((tr) => (
+                <Link key={tr.id} to={`/tour/${tr.slug}`} className="group block">
+                  <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-card ring-1 ring-black/10">
+                    <img src={tr.hero} alt={tr.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  </div>
+                  <div className="mt-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-foreground">{tr.title}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">{tr.region}</div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1 text-xs text-foreground">
+                      <Star className="h-4 w-4 fill-foreground" />
+                      <span className="font-medium">{tr.rating.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-sm font-semibold text-foreground">
+                    ${tr.price} <span className="text-xs font-normal text-muted-foreground">/ person</span>
+                  </div>
+                </Link>
+              ))}
         </div>
       </section>
 
       {/* CTA */}
       <section className="container-page pb-24 pt-6">
-        <div className="relative overflow-hidden rounded-[2rem] bg-black p-10 shadow-elevated ring-1 ring-black/10 sm:p-14">
-          <img
-            alt="Share your Kyrgyzstan"
-            src="https://images.unsplash.com/photo-1482192505345-5655af888cc4?auto=format&fit=crop&w=2400&q=80"
-            className="absolute inset-0 h-full w-full object-cover opacity-90"
-          />
+          <div className="relative overflow-hidden rounded-[2rem] bg-black p-10 shadow-elevated ring-1 ring-black/10 sm:p-14">
+            <img
+              alt="Share your Kyrgyzstan"
+              src={unsplash("photo-1482192505345-5655af888cc4", 1600)}
+              srcSet={unsplashSrcSet("photo-1482192505345-5655af888cc4")}
+              sizes="(max-width: 768px) 100vw, 1200px"
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover opacity-90"
+            />
           <div className="absolute inset-0 bg-black/45" />
           <div className="relative z-10 max-w-md text-white">
             <h2 className="font-display text-4xl font-semibold leading-tight sm:text-5xl">Share your Kyrgyzstan</h2>

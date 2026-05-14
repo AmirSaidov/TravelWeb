@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calculator, Globe2, ListChecks, Paperclip, RefreshCw, Send } from "lucide-react";
+import { Calculator, Globe2, ListChecks, RefreshCw, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -170,9 +170,6 @@ const AIAssistantPage = () => {
             }}
             className="flex items-center gap-2 border-t border-border bg-background p-3"
           >
-            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground">
-              <Paperclip className="h-4 w-4" />
-            </Button>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -286,4 +283,3 @@ const ConsultDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v
     </Dialog>
   );
 };
-

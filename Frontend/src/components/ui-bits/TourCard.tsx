@@ -5,6 +5,7 @@ import { useAppStore } from "@/store/app";
 import { RatingStars } from "./RatingStars";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/currency";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const TourCard = ({ tour, layout = "vertical" }: { tour: Tour; layout?: "vertical" | "compact" }) => {
   const saved = useAppStore((s) => s.saved.includes(tour.id));
@@ -17,7 +18,14 @@ export const TourCard = ({ tour, layout = "vertical" }: { tour: Tour; layout?: "
     >
       <div className="overflow-hidden rounded-3xl bg-card shadow-card ring-1 ring-border/60 transition-[transform,box-shadow] duration-300 will-change-transform [transform:translateZ(0)] hover:-translate-y-0.5 hover:shadow-elevated">
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          <img src={tour.hero} alt={tour.title} className="h-full w-full object-cover transition-transform duration-500 [transform:translateZ(0)] group-hover:scale-105" />
+          <img
+            src={tour.hero}
+            alt={tour.title}
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+            className="h-full w-full object-cover transition-transform duration-500 [transform:translateZ(0)] group-hover:scale-105"
+          />
         {tour.badge && (
           <span className="absolute left-3 top-3 rounded-md bg-gold px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gold-foreground shadow-sm">
             {tour.badge}
@@ -58,5 +66,41 @@ export const TourCard = ({ tour, layout = "vertical" }: { tour: Tour; layout?: "
         </div>
       </div>
     </Link>
+  );
+};
+
+export const TourCardSkeleton = ({ layout = "vertical" }: { layout?: "vertical" | "compact" }) => {
+  return (
+    <div className="rounded-3xl bg-card shadow-card ring-1 ring-border/60">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-muted">
+        <Skeleton className="h-full w-full rounded-none" />
+        <Skeleton className="absolute left-3 top-3 h-6 w-24 rounded-md" />
+        <Skeleton className="absolute right-3 top-3 h-9 w-9 rounded-full" />
+        <Skeleton className="absolute bottom-3 left-3 h-6 w-28 rounded-full" />
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-3 w-2/5" />
+          </div>
+          <Skeleton className="h-4 w-14 rounded-full" />
+        </div>
+
+        <div className="mt-2 flex items-center gap-3">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+
+        <div className="mt-3 flex items-end justify-between">
+          <div className="space-y-1">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+          {layout === "vertical" && <Skeleton className="h-5 w-24 rounded-full" />}
+        </div>
+      </div>
+    </div>
   );
 };

@@ -3,7 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Search, Leaf } from "lucide-react";
 import { differenceInCalendarDays, parseISO } from "date-fns";
-import { TourCard } from "@/components/ui-bits/TourCard";
+import { TourCard, TourCardSkeleton } from "@/components/ui-bits/TourCard";
 import { useQuery } from "@tanstack/react-query";
 import { toursApi } from "@/lib/api";
 import type { Difficulty, TourType } from "@/types";
@@ -478,9 +478,7 @@ const Explore = () => {
 
           <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {isLoading ? (
-              <div className="col-span-full rounded-3xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
-                Loading tours…
-              </div>
+              Array.from({ length: 6 }).map((_, i) => <TourCardSkeleton key={`tour-skeleton-${i}`} />)
             ) : isError ? (
               <div className="col-span-full rounded-3xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
                 Failed to load tours. Check backend.

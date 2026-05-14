@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Paperclip, RefreshCw, Calculator, ListChecks, Globe2 } from "lucide-react";
+import { MessageCircle, X, Send, RefreshCw, Calculator, ListChecks, Globe2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -191,7 +191,6 @@ export const AIAssistant = () => {
               onSubmit={(e) => { e.preventDefault(); send(input); }}
               className="flex items-center gap-2 border-t border-border bg-background p-3"
             >
-              <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground"><Paperclip className="h-4 w-4" /></Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
