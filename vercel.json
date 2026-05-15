@@ -1,6 +1,6 @@
 {
-  "installCommand": "npm -C next-frontend ci",
-  "buildCommand": "npm -C next-frontend run build",
-  "devCommand": "npm -C next-frontend run dev",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
   "framework": "nextjs"
 }
