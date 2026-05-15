@@ -38,10 +38,10 @@ export function Header() {
             Войти
           </Link>
           <Link
-            href="/ai"
-            className="inline-flex h-9 items-center justify-center rounded-full bg-[hsl(var(--brand))] px-4 text-xs font-semibold text-[hsl(var(--brand-foreground))] hover:opacity-95 sm:text-sm"
+            href="/register"
+            className="inline-flex h-9 items-center justify-center rounded-full bg-[hsl(var(--primary))] px-4 text-xs font-semibold text-[hsl(var(--primary-foreground))] hover:opacity-95 sm:text-sm"
           >
-            AI ассистент
+            Регистрация
           </Link>
         </div>
       </div>
