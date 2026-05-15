@@ -1,9 +1,6 @@
 {
-  "installCommand": "npm -C Frontend ci",
-  "buildCommand": "npm -C Frontend run build",
-  "outputDirectory": "Frontend/dist",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  "installCommand": "npm -C next-frontend ci",
+  "buildCommand": "npm -C next-frontend run build",
+  "devCommand": "npm -C next-frontend run dev",
+  "framework": "nextjs"
 }
-
