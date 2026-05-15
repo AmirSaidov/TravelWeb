@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { HomeSearch } from "@/components/home/HomeSearch";
 import { HomeTours } from "@/components/home/HomeTours";
 
 export default function Home() {
@@ -39,6 +40,10 @@ export default function Home() {
             >
               Смотреть туры
             </Link>
+          </div>
+
+          <div className="mt-10">
+            <HomeSearch />
           </div>
         </div>
       </section>
