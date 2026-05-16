@@ -1,6 +1,0 @@
-{
-  "installCommand": "npm --prefix Frontend ci",
-  "buildCommand": "npm --prefix Frontend run build",
-  "devCommand": "npm --prefix Frontend run dev",
-  "framework": "nextjs"
-}
