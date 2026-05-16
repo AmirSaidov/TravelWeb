@@ -1,5 +1,7 @@
+"use client";
+
 import { useTranslation } from "react-i18next";
-import { AuthForm } from "@/pages/Auth";
+import { AuthForm } from "@/screens/Auth";
 import { useAppStore } from "@/store/app";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 

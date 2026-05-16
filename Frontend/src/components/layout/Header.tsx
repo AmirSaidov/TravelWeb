@@ -1,4 +1,7 @@
-import { Link, NavLink } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useEffect, useRef } from "react";
@@ -22,6 +25,7 @@ const langs = [
 
 export const Header = () => {
   const { t, i18n } = useTranslation();
+  const pathname = usePathname();
   const user = useAppStore((s) => s.user);
   const signOut = useAppStore((s) => s.signOut);
   const openAuthModal = useAppStore((s) => s.openAuthModal);
@@ -32,16 +36,17 @@ export const Header = () => {
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const navItems = [
-    { to: "/explore", label: t("nav.explore") },
-    { to: "/map", label: t("nav.map") },
-    { to: "/experiences", label: t("nav.experiences") },
-    { to: "/dashboard", label: t("nav.dashboard") },
-    { to: "/ai", label: t("nav.ai") },
+    { href: "/explore", label: t("nav.explore") },
+    { href: "/map", label: t("nav.map") },
+    { href: "/experiences", label: t("nav.experiences") },
+    { href: "/dashboard", label: t("nav.dashboard") },
+    { href: "/ai", label: t("nav.ai") },
   ];
 
   const setLang = (code: string) => {
     i18n.changeLanguage(code);
     localStorage.setItem("lang", code);
+    document.cookie = `lang=${encodeURIComponent(code)}; path=/; max-age=31536000; samesite=lax`;
     if (currencyMode === "auto") {
       setCurrency(currencyForLang(code), "auto");
     }
@@ -59,7 +64,7 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-[60] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="container-page flex min-h-16 items-center justify-between gap-2 py-3 md:grid md:grid-cols-[auto_1fr_auto] md:gap-3 md:py-0">
-        <Link to="/" className="flex min-w-0 items-center gap-2">
+        <Link href="/" className="flex min-w-0 items-center gap-2">
           <span className="truncate font-display text-base font-semibold tracking-tight text-primary sm:text-lg">
             Kyrgyz Travel
           </span>
@@ -67,17 +72,17 @@ export const Header = () => {
 
         <nav className="hidden justify-self-center items-center gap-8 md:flex">
           {navItems.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              className={({ isActive }) =>
-                `relative text-sm font-medium transition-colors ${
-                  isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                } after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:w-full after:bg-foreground/80 after:transition-transform after:scale-x-0 [&.active]:after:scale-x-100`
-              }
+            <Link
+              key={n.href}
+              href={n.href}
+              className={`relative text-sm font-medium transition-colors ${
+                pathname === n.href ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+              } after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:w-full after:bg-foreground/80 after:transition-transform after:scale-x-0 ${
+                pathname === n.href ? "after:scale-x-100" : ""
+              }`}
             >
               {n.label}
-            </NavLink>
+            </Link>
           ))}
         </nav>
 
@@ -168,12 +173,12 @@ export const Header = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setAvatar("")}>Remove avatar</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild><Link to="/dashboard">{t("nav.dashboard")}</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link href="/dashboard">{t("nav.dashboard")}</Link></DropdownMenuItem>
                 <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="md:hidden"><Link to="/explore">{t("nav.explore")}</Link></DropdownMenuItem>
-                <DropdownMenuItem asChild className="md:hidden"><Link to="/map">{t("nav.map")}</Link></DropdownMenuItem>
-                <DropdownMenuItem asChild className="md:hidden"><Link to="/experiences">{t("nav.experiences")}</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild className="md:hidden"><Link href="/explore">{t("nav.explore")}</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild className="md:hidden"><Link href="/map">{t("nav.map")}</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild className="md:hidden"><Link href="/experiences">{t("nav.experiences")}</Link></DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (

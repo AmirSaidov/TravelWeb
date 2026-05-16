@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
 import { Instagram, Twitter, Facebook } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -50,20 +52,20 @@ export const Footer = ({ variant = "dark" }: { variant?: "dark" | "light" }) => 
           <div>
             <h4 className={`mb-4 font-display text-base font-semibold`}>{t("footer.destinations")}</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/explore?region=Issyk-Kul" className="hover:text-primary">Issyk-Kul Lake</Link></li>
-              <li><Link to="/explore?region=Ala-Archa" className="hover:text-primary">Ala Archa Gorge</Link></li>
-              <li><Link to="/explore?region=Naryn" className="hover:text-primary">Song Kul Lake</Link></li>
-              <li><Link to="/explore?region=Pamir" className="hover:text-primary">Pamir Mountains</Link></li>
+              <li><Link href="/explore?region=Issyk-Kul" className="hover:text-primary">Issyk-Kul Lake</Link></li>
+              <li><Link href="/explore?region=Ala-Archa" className="hover:text-primary">Ala Archa Gorge</Link></li>
+              <li><Link href="/explore?region=Naryn" className="hover:text-primary">Song Kul Lake</Link></li>
+              <li><Link href="/explore?region=Pamir" className="hover:text-primary">Pamir Mountains</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="mb-4 font-display text-base font-semibold">{t("footer.info")}</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/info/visa" className="hover:text-primary">{t("footer.travelVisa")}</Link></li>
-              <li><Link to="/info/best-time" className="hover:text-primary">{t("footer.bestTime")}</Link></li>
-              <li><Link to="/info/etiquette" className="hover:text-primary">{t("footer.etiquette")}</Link></li>
-              <li><Link to="/info/safety" className="hover:text-primary">{t("footer.safety")}</Link></li>
+              <li><Link href="/info/visa" className="hover:text-primary">{t("footer.travelVisa")}</Link></li>
+              <li><Link href="/info/best-time" className="hover:text-primary">{t("footer.bestTime")}</Link></li>
+              <li><Link href="/info/etiquette" className="hover:text-primary">{t("footer.etiquette")}</Link></li>
+              <li><Link href="/info/safety" className="hover:text-primary">{t("footer.safety")}</Link></li>
             </ul>
           </div>
 
@@ -80,9 +82,9 @@ export const Footer = ({ variant = "dark" }: { variant?: "dark" | "light" }) => 
         <div className={`mt-12 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center`}>
           <p>© 2026 Kyrgyzstan Travel. {t("footer.rights")} Licensed tour operator #KG-4015.</p>
           <div className="flex gap-5">
-            <Link to="/privacy" className="hover:text-primary">{t("footer.privacy")}</Link>
-            <Link to="/terms" className="hover:text-primary">{t("footer.terms")}</Link>
-            <Link to="/sitemap" className="hover:text-primary">{t("footer.sitemap")}</Link>
+            <Link href="/privacy" className="hover:text-primary">{t("footer.privacy")}</Link>
+            <Link href="/terms" className="hover:text-primary">{t("footer.terms")}</Link>
+            <Link href="/sitemap" className="hover:text-primary">{t("footer.sitemap")}</Link>
           </div>
         </div>
       </div>

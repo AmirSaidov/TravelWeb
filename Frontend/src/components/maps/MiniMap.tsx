@@ -17,7 +17,7 @@ export function MiniMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
 
-  const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string | undefined;
 
   useEffect(() => {
     if (!token || !containerRef.current || mapRef.current) return;

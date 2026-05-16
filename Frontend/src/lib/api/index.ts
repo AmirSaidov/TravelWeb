@@ -42,9 +42,12 @@ const mapApiTour = (t: ApiTour): Tour => {
       )
     : [];
   const image = t.image || "";
+  const idStr = String(t.id);
+  const titleSlug = slugify(t.title) || idStr;
   return {
-    id: String(t.id),
-    slug: slugify(t.title) || String(t.id),
+    id: idStr,
+    // Include numeric id to make tour links stable even if the backend list is paginated.
+    slug: `${idStr}-${titleSlug}`,
     title: t.title,
     region: t.location,
     location: t.location,
@@ -101,9 +104,27 @@ export const toursApi = {
     const { data } = await api.get<ApiTour[]>("/tours/", { params: { currency: cur } });
     return data.map(mapApiTour);
   },
+  async getTourById(id: string | number) {
+    const { data } = await api.get<ApiTour>(`/tours/${id}/`);
+    return mapApiTour(data);
+  },
   async getTourBySlug(slug: string, currency?: string) {
+    const raw = String(slug || "").trim();
+    if (!raw) return null;
+
+    // Prefer parsing `"{id}-{title}"` slugs to fetch the tour directly.
+    const idPart = raw.match(/^(\d+)(?:-|$)/)?.[1];
+    if (idPart) {
+      try {
+        return await this.getTourById(idPart);
+      } catch {
+        // fallback below
+      }
+    }
+
+    // Fallback: scan the first page of results (backward compatibility for old slugs).
     const all = await this.getTours(currency);
-    return all.find((t) => t.slug === slug) ?? null;
+    return all.find((t) => t.slug === raw || t.slug.replace(/^\d+-/, "") === raw) ?? null;
   },
 };
 

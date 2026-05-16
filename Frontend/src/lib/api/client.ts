@@ -2,17 +2,10 @@ import axios from "axios";
 
 const TOKEN_KEY = "kg_travel_token";
 
-const envBaseUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+const envBaseUrl = (process.env.NEXT_PUBLIC_API_URL as string | undefined)?.trim();
 
-// In production, never default to localhost; prefer same-origin "/api" (reverse proxy) unless configured otherwise.
-const defaultBaseUrl = import.meta.env.DEV ? "http://localhost:8000/api" : "/api";
-
-if (!envBaseUrl && import.meta.env.PROD) {
-  // eslint-disable-next-line no-console
-  console.warn(
-    "[api] VITE_API_URL is not set; defaulting to '/api'. Set VITE_API_URL at build time to your backend origin (e.g. https://api.example.com/api)."
-  );
-}
+// Prefer same-origin "/api" (Next rewrites can proxy to the real backend).
+const defaultBaseUrl = process.env.NODE_ENV === "development" ? "http://localhost:8000/api" : "/api";
 
 export const tokenStorage = {
   get() {
@@ -34,8 +27,8 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = tokenStorage.get();
   if (token) {
-    config.headers = config.headers ?? {};
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers = config.headers ?? ({} as any);
+    (config.headers as any).Authorization = `Bearer ${token}`;
   }
   return config;
 });

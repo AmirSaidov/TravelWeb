@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { Heart, MapPin } from "lucide-react";
 import type { Tour } from "@/types";
 import { useAppStore } from "@/store/app";
@@ -13,7 +13,7 @@ export const TourCard = ({ tour, layout = "vertical" }: { tour: Tour; layout?: "
 
   return (
     <Link
-      to={`/tour/${tour.slug}`}
+      href={`/tour/${tour.slug}`}
       className="group block rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <div className="overflow-hidden rounded-3xl bg-card shadow-card ring-1 ring-border/60 transition-[transform,box-shadow] duration-300 will-change-transform [transform:translateZ(0)] hover:-translate-y-0.5 hover:shadow-elevated">

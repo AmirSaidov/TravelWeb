@@ -5,6 +5,15 @@ const resources = {
   en: {
     translation: {
       nav: { explore: "Explore", map: "Map", experiences: "Experiences", dashboard: "Dashboard", ai: "AI Assistant", login: "Sign in", signup: "Sign up" },
+      notFound: {
+        title: "Route not found",
+        subtitle: "Looks like this trail no longer leads to the page you wanted.",
+        backHome: "Back to home",
+        openMap: "Open map",
+        aiTitle: "Travel AI assistant",
+        aiText: "Ask for a route, packing list, hotels, or tips in seconds.",
+        askAi: "Ask AI",
+      },
       hero: {
         pill: "AI-Powered Travel Guide",
         title: "Kyrgyzstan — where mountains touch the sky",
@@ -100,6 +109,15 @@ const resources = {
   },
   ru: {
     translation: {
+      notFound: {
+        title: "Маршрут не найден",
+        subtitle: "Похоже, эта тропа больше не ведёт к нужной странице.",
+        backHome: "Вернуться на главную",
+        openMap: "Открыть карту",
+        aiTitle: "AI-помощник путешественника",
+        aiText: "Подскажу маршрут, список вещей, отели и советы за секунды.",
+        askAi: "Спросить AI",
+      },
       nav: { explore: "Туры", map: "Карта", experiences: "Опыт", dashboard: "Кабинет", ai: "AI ассистент", login: "Войти", signup: "Регистрация" },
       hero: {
         pill: "AI-помощник путешественника",
@@ -196,6 +214,15 @@ const resources = {
   },
   kg: {
     translation: {
+      notFound: {
+        title: "Маршрут табылган жок",
+        subtitle: "Бул из мындан ары керектүү баракка алып барбайт окшойт.",
+        backHome: "Башкы бетке кайтуу",
+        openMap: "Картаны ачуу",
+        aiTitle: "AI жардамчы",
+        aiText: "Маршрут, тизме, мейманкана жана кеңештерди секундда сунуштайм.",
+        askAi: "AIден сура",
+      },
       nav: { explore: "Турлар", map: "Карта", experiences: "Тажрыйба", dashboard: "Кабинет", ai: "AI жардамчы", login: "Кирүү", signup: "Каттоо" },
       hero: {
         pill: "AI саякат жардамчысы",
@@ -292,13 +319,40 @@ const resources = {
   },
 };
 
-const stored = typeof window !== "undefined" ? localStorage.getItem("lang") : null;
+let didInit = false;
 
-i18n.use(initReactI18next).init({
-  resources,
-  lng: stored || "en",
-  fallbackLng: "en",
-  interpolation: { escapeValue: false },
-});
+const normalizeLang = (raw?: string | null) => {
+  const v = String(raw || "").trim().toLowerCase();
+  if (!v) return "en";
+  if (v.startsWith("ru")) return "ru";
+  if (v === "kg" || v.startsWith("ky") || v.startsWith("kg")) return "kg";
+  if (v.startsWith("en")) return "en";
+  return "en";
+};
+
+export function initI18n(initialLang?: string | null) {
+  const lng = normalizeLang(initialLang);
+
+  if (!didInit) {
+    // IMPORTANT:
+    // Don't read localStorage here. This module can be evaluated during server rendering.
+    // We pass the initial language from a server cookie via `src/app/layout.tsx`.
+    i18n.use(initReactI18next).init({
+      resources,
+      lng,
+      fallbackLng: "en",
+      interpolation: { escapeValue: false },
+    });
+    didInit = true;
+    return i18n;
+  }
+
+  if (i18n.language !== lng) {
+    // With inlined resources this is synchronous and avoids SSR/CSR mismatches.
+    i18n.changeLanguage(lng);
+  }
+
+  return i18n;
+}
 
 export default i18n;
