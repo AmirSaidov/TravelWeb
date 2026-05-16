@@ -13,7 +13,7 @@ const inter = Inter({
 });
 
 const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
 });
