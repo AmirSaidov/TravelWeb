@@ -1,11 +1,22 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/inter";
-import "@fontsource-variable/space-grotesk";
 import "antd/dist/reset.css";
 import "./globals.css";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Providers } from "./providers";
 import { cookies } from "next/headers";
+import { Inter, Space_Grotesk } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+  variable: "--font-sans",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
   title: "Kyrgyz Travel",
@@ -20,7 +31,7 @@ export default function RootLayout({
   const lang = cookies().get("lang")?.value ?? "en";
   return (
     <html lang={lang || "en"}>
-      <body>
+      <body className={`${inter.variable} ${spaceGrotesk.variable}`}>
         <Providers initialLang={lang}>
           <SiteLayout>{children}</SiteLayout>
         </Providers>

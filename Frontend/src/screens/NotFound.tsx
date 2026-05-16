@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowRight, Home, Map as MapIcon, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 const NotFound = () => {
   const pathname = usePathname();
@@ -19,7 +20,14 @@ const NotFound = () => {
     <section className="relative min-h-[calc(100vh-64px)] w-full overflow-hidden bg-black">
       {/* Background */}
       <div className="absolute inset-0">
-        <img src="/images/404-bg.png" alt="" className="h-full w-full object-cover opacity-95" decoding="async" loading="eager" />
+        <Image
+          src="/images/404-bg.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-95"
+        />
         {/* Keep photo bright: only a very light contrast overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),rgba(0,0,0,0)_48%),linear-gradient(180deg,rgba(0,0,0,0.05)_0%,rgba(0,0,0,0.18)_70%,rgba(0,0,0,0.32)_100%)]" />
       </div>
