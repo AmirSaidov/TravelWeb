@@ -30,4 +30,5 @@ out
 venv/
 __pycache__/
 *.pyc
+/tour_backend/media/
 .vercel

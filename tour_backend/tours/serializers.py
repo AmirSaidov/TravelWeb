@@ -4,9 +4,27 @@ from .models import Review, Tour
 from .currency import convert_money, get_currency_config, normalize_currency, quantize_money
 
 
+def get_tour_image_url(tour: Tour, request=None) -> str:
+    image = getattr(tour, "image", None)
+    if not image:
+        return ""
+
+    raw = str(image)
+    if raw.startswith(("http://", "https://", "//", "data:")):
+        return raw
+
+    try:
+        url = image.url
+    except (AttributeError, ValueError):
+        return raw
+
+    return request.build_absolute_uri(url) if request else url
+
+
 class TourSerializer(serializers.ModelSerializer):
     price = serializers.SerializerMethodField()
     currency = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
     rating_avg = serializers.FloatField(read_only=True)
     review_count = serializers.IntegerField(read_only=True)
     
@@ -33,6 +51,10 @@ class TourSerializer(serializers.ModelSerializer):
         if requested and normalize_currency(requested) != stored_cur:
             amount = convert_money(amount, from_currency=stored_cur, to_currency=requested)
         return str(quantize_money(amount))
+
+    def get_image(self, obj: Tour) -> str:
+        req = self.context.get("request") if isinstance(self.context, dict) else None
+        return get_tour_image_url(obj, req)
 
     class Meta:
         model = Tour

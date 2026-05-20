@@ -30,7 +30,7 @@ class Tour(models.Model):
     difficulty = models.CharField(max_length=50)
     types = models.JSONField(default=list, blank=True)
     max_people = models.IntegerField()
-    image = models.URLField()
+    image = models.ImageField(upload_to="tours/", max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

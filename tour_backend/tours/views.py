@@ -12,7 +12,7 @@ from datetime import timedelta
 from .models import Booking, Payment, Review, User, Tour
 from .services import booking_service
 
-from .serializers import ReviewSerializer, TourSerializer
+from .serializers import ReviewSerializer, TourSerializer, get_tour_image_url
 from .auth import create_access_token
 from .currency import convert_money, get_currency_config, normalize_currency, quantize_money
 
@@ -286,7 +286,7 @@ class MyBookingsView(APIView):
                         "currency": price_currency,
                         "location": b.tour.location,
                         "duration": b.tour.duration,
-                        "image": b.tour.image,
+                        "image": get_tour_image_url(b.tour, request),
                     },
                 }
             )
