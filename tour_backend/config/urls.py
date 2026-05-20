@@ -16,9 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from django.urls import path, include
+from django.views.generic import RedirectView
 
 urlpatterns = [
+    path('jet/dashboard/', RedirectView.as_view(url='/admin/', permanent=False)),
+    path('jet/dashboard/', include('jet.dashboard.urls', 'jet-dashboard')),
+    path('jet/', RedirectView.as_view(url='/admin/', permanent=False)),
+    path('jet/', include('jet.urls', 'jet')),
     path('admin/', admin.site.urls),
     path('api/', include('tours.urls')),
     path("api/ai/", include("ai.urls")),
