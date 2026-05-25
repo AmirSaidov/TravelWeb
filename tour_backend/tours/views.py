@@ -456,10 +456,21 @@ class TourListView(APIView):
         if price_max:
             tours = tours.filter(price__lte=float(price_max))
 
-        page = int(request.query_params.get('page', 1))
-        limit = int(request.query_params.get('limit', 10))
-        skip = (page - 1) * limit
-        tours = tours[skip: skip + limit]
+        page_str = request.query_params.get('page')
+        limit_str = request.query_params.get('limit')
+
+        if page_str or limit_str:
+            try:
+                page = int(page_str) if page_str else 1
+                limit = int(limit_str) if limit_str else 10
+                if page < 1:
+                    page = 1
+                if limit < 1:
+                    limit = 10
+                skip = (page - 1) * limit
+                tours = tours[skip: skip + limit]
+            except ValueError:
+                pass
 
         serializer = TourSerializer(tours, many=True, context={"request": request})
         return Response(serializer.data)
