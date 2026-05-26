@@ -1,7 +1,23 @@
+from urllib.parse import urljoin
+
+from django.conf import settings
 from rest_framework import serializers
 
 from .models import Review, Tour
 from .currency import convert_money, get_currency_config, normalize_currency, quantize_money
+
+
+def make_absolute_media_url(url: str, request=None) -> str:
+    if not url:
+        return ""
+    if url.startswith(("http://", "https://", "//", "data:")):
+        return url
+
+    public_base_url = getattr(settings, "PUBLIC_BASE_URL", "")
+    if public_base_url:
+        return urljoin(f"{public_base_url}/", url.lstrip("/"))
+
+    return request.build_absolute_uri(url) if request else url
 
 
 def get_tour_image_url(tour: Tour, request=None) -> str:
@@ -18,7 +34,7 @@ def get_tour_image_url(tour: Tour, request=None) -> str:
     except (AttributeError, ValueError):
         return raw
 
-    return request.build_absolute_uri(url) if request else url
+    return make_absolute_media_url(url, request)
 
 
 class TourSerializer(serializers.ModelSerializer):
