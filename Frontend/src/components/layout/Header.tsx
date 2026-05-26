@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sun, Moon } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/app";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CURRENCIES, currencyForLang } from "@/lib/currencyPref";
 import { normalizeCurrency } from "@/lib/currency";
+import { useTheme } from "next-themes";
 
 const langs = [
   { code: "en", label: "ENG" },
@@ -34,6 +35,13 @@ export const Header = () => {
   const currencyMode = useAppStore((s) => s.currencyMode);
   const setCurrency = useAppStore((s) => s.setCurrency);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navItems = [
     { href: "/explore", label: t("nav.explore") },
@@ -62,7 +70,7 @@ export const Header = () => {
   }, [currencyMode, currentCurrency, i18n.language, setCurrency]);
 
   return (
-    <header className="sticky top-0 z-[60] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <header className="sticky top-0 z-[60] border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="container-page flex min-h-16 items-center justify-between gap-2 py-3 md:grid md:grid-cols-[auto_1fr_auto] md:gap-3 md:py-0">
         <Link href="/" className="flex min-w-0 items-center gap-2">
           <span className="truncate font-display text-base font-semibold tracking-tight text-primary sm:text-lg">
@@ -87,6 +95,20 @@ export const Header = () => {
         </nav>
 
         <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 w-9 rounded-xl p-0 transition-transform duration-200 hover:scale-[1.03]"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label="Toggle theme"
+          >
+            {mounted && theme === "dark" ? (
+              <Sun className="h-4 w-4 text-amber-500" />
+            ) : (
+              <Moon className="h-4 w-4 text-indigo-500" />
+            )}
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 px-2.5 text-xs font-medium sm:px-4 sm:text-sm">

@@ -7,6 +7,29 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { useEffect, useState } from "react";
 import { initI18n } from "@/i18n";
+import { ThemeProvider, useTheme } from "next-themes";
+
+function AntdConfigProvider({ children }: { children: React.ReactNode }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+        token: {
+          colorPrimary: "#ef4444",
+          colorInfo: "#ef4444",
+          colorSuccess: "#22c55e",
+          borderRadius: 24,
+          fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+        },
+      }}
+    >
+      {children}
+    </ConfigProvider>
+  );
+}
 
 export function Providers({ children, initialLang }: { children: React.ReactNode; initialLang?: string }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -24,24 +47,15 @@ export function Providers({ children, initialLang }: { children: React.ReactNode
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ConfigProvider
-        theme={{
-          algorithm: antdTheme.defaultAlgorithm,
-          token: {
-            colorPrimary: "#ef4444",
-            colorInfo: "#ef4444",
-            colorSuccess: "#22c55e",
-            borderRadius: 24,
-            fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-          },
-        }}
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          {children}
-        </TooltipProvider>
-      </ConfigProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <AntdConfigProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            {children}
+          </TooltipProvider>
+        </AntdConfigProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
