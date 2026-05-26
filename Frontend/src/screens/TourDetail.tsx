@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Share2, Heart, MapPin, Mountain, Tent, Utensils, Check, Star } from "lucide-react";
@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/store/app";
 import { toast } from "@/hooks/use-toast";
 import { MiniMap } from "@/components/maps/MiniMap";
+import { setCurrentTourContext } from "@/lib/aiContext";
 import { formatMoney } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,12 @@ const TourDetail = () => {
     enabled: Boolean(user),
     queryFn: async () => bookingApi.myBookings(currency),
   });
+
+  useEffect(() => {
+    setCurrentTourContext(tour);
+    return () => setCurrentTourContext(null);
+  }, [tour]);
+
   const [showMore, setShowMore] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [activePhoto, setActivePhoto] = useState(0);

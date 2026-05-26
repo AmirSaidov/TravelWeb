@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api/client";
+import { getPageContext, initPageActionTracking } from "@/lib/aiContext";
 
 interface DayBlock {
   day: number;
@@ -44,6 +45,10 @@ const AIAssistantPage = () => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    initPageActionTracking();
+  }, []);
+
   const send = async (text: string) => {
     const message = text.trim();
     if (!message || isLoading) return;
@@ -54,12 +59,12 @@ const AIAssistantPage = () => {
     setIsLoading(true);
 
     try {
-      const { data } = await api.post<AiChatResponse>("/ai/chat/", { message });
+      const { data } = await api.post<AiChatResponse>("/ai/chat/", { message, context: getPageContext() });
       setMessages((m) => [...m, { id: createId(), role: "assistant", ts: Date.now(), text: data.answer }]);
     } catch {
       setMessages((m) => [
         ...m,
-        { id: createId(), role: "assistant", ts: Date.now(), text: "Ошибка AI. Попробуйте ещё раз." },
+        { id: createId(), role: "assistant", ts: Date.now(), text: t("ai.error") },
       ]);
     } finally {
       setIsLoading(false);

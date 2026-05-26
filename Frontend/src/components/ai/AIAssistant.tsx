@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api/client";
+import { getPageContext, initPageActionTracking } from "@/lib/aiContext";
 
 interface DayBlock { day: number; title: string; tag: "Culture" | "Nature" | "Adventure"; text: string; img: string; }
 interface Msg { id: string; role: "user" | "assistant"; text?: string; timeline?: DayBlock[]; pricePerPerson?: number; ts: number; }
@@ -31,6 +32,10 @@ export const AIAssistant = () => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, open, isLoading]);
 
+  useEffect(() => {
+    initPageActionTracking();
+  }, []);
+
   const send = async (text: string) => {
     const message = text.trim();
     if (!message || isLoading) return;
@@ -41,7 +46,7 @@ export const AIAssistant = () => {
     setIsLoading(true);
 
     try {
-      const { data } = await api.post<AiChatResponse>("/ai/chat/", { message });
+      const { data } = await api.post<AiChatResponse>("/ai/chat/", { message, context: getPageContext() });
       setMessages((m) => [
         ...m,
         {
@@ -52,7 +57,7 @@ export const AIAssistant = () => {
     } catch {
       setMessages((m) => [
         ...m,
-        { id: createId(), role: "assistant", ts: Date.now(), text: "\u041e\u0448\u0438\u0431\u043a\u0430 AI. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0435\u0449\u0451 \u0440\u0430\u0437." },
+        { id: createId(), role: "assistant", ts: Date.now(), text: t("ai.error") },
       ]);
     } finally {
       setIsLoading(false);
