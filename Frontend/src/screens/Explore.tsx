@@ -297,7 +297,7 @@ const Explore = () => {
             </div>
           </div>
 
-          <div>
+          {/* <div>
             <div className="mb-3 text-sm font-semibold">{t("explore.difficulty")}</div>
             <div className="flex flex-wrap gap-2">
               {difficulties.map((d) => (
@@ -310,9 +310,9 @@ const Explore = () => {
                 >
                   {t(`explore.${d.id}` as any)}
                 </Button>
-              ))}
+              ))} 
             </div>
-          </div>
+          </div> */}
 
           <div className="rounded-2xl bg-brand-soft p-4">
             <div className="mb-2 grid h-9 w-9 place-items-center rounded-xl bg-brand text-brand-foreground"><Leaf className="h-4 w-4" /></div>

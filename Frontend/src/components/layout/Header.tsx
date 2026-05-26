@@ -87,7 +87,7 @@ export const Header = () => {
         </nav>
 
         <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
-          <DropdownMenu>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 px-2.5 text-xs font-medium sm:px-4 sm:text-sm">
                 {currentCurrency}
@@ -105,7 +105,7 @@ export const Header = () => {
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

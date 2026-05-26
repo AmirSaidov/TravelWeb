@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { useAppStore } from "@/store/app";
 import { toast } from "@/hooks/use-toast";
 import { authApi } from "@/lib/api";
+import { FaRegEye } from "react-icons/fa";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 
 interface Props { mode: "login" | "register" | "forgot" }
 
@@ -31,6 +33,11 @@ export function AuthForm({
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const [hiddenPassword, setHiddenPassword] = useState(true)
+
+  const togglePassword = () => {
+    setHiddenPassword(!hiddenPassword)
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +87,7 @@ export function AuthForm({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="h-10 border-0 bg-transparent px-0 text-[15px] shadow-none placeholder:text-muted-foreground/70 focus-visible:ring-0"
+                placeholder="Your name"
               />
             </div>
           )}
@@ -94,7 +101,6 @@ export function AuthForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="h-10 border-0 bg-transparent px-0 text-[15px] shadow-none placeholder:text-muted-foreground/70 focus-visible:ring-0"
             />
           </div>
           <div className="bg-background/40 px-6 py-5">
@@ -103,22 +109,29 @@ export function AuthForm({
                 {t("auth.password")}
               </Label>
               {isLogin && (
-                <Link
-                  href="/forgot-password"
-                  className="whitespace-nowrap text-xs font-medium text-muted-foreground hover:text-foreground"
-                >
-                  {t("auth.forgot")}
-                </Link>
+                <DialogPrimitive.Close>
+                  <Link
+                    href="/forgot-password"
+                    className="whitespace-nowrap text-xs font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    {t("auth.forgot")}
+                  </Link>
+                </DialogPrimitive.Close>
               )}
             </div>
-            <Input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="h-10 border-0 bg-transparent px-0 text-[15px] shadow-none placeholder:text-muted-foreground/70 focus-visible:ring-0"
-            />
+            <div className="flex items-center">
+              <Input
+                type={`${hiddenPassword == true ? `password` : `name`}`}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="password"
+              />
+              <FaRegEye
+                className="opacity-50 text-xl cursor-pointer"
+                onClick={togglePassword}
+              />
+            </div>
           </div>
         </div>
 
@@ -254,7 +267,8 @@ export const AuthPage = ({ mode }: Props) => {
           <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t("auth.email")}</Label>
-              <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+              <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11"
+                placeholder="you@example.com" />
             </div>
           </div>
           <Button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90">
