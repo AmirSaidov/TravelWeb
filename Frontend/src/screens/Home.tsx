@@ -164,14 +164,12 @@ const Home = () => {
                               setActiveSearchTab(null);
                             }}
                           >
-                            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-muted/80 transition-all duration-300 group-hover:scale-[1.03] group-hover:bg-muted">
-                              <img
-                                src={item.iconSrc}
-                                alt=""
-                                className="h-8 w-8 object-contain"
-                                style={{ transform: `scale(${item.scale * 0.75})` }}
-                              />
-                            </div>
+                            <img
+                              src={item.iconSrc}
+                              alt=""
+                              className="h-12 w-12 shrink-0 object-contain transition-transform duration-300 group-hover:scale-110"
+                              style={{ transform: `scale(${item.scale})` }}
+                            />
                             <div className="text-left">
                               <div className="text-sm font-bold">{item.city}</div>
                               <div className="text-xs text-muted-foreground">{item.sub}</div>
