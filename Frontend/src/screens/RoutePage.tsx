@@ -11,10 +11,12 @@ import { applyRussianLabels } from "@/lib/mapboxLabels";
 import { applyKyrgyzstanOnlyMap } from "@/lib/kyrgyzstanOnlyMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "react-i18next";
 
 type Coord = { lng: number; lat: number };
 
 const RoutePage = () => {
+  const { t } = useTranslation();
   const params = useSearchParams();
   const toText = (params.get("to") || "").trim();
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string | undefined;
@@ -25,6 +27,16 @@ const RoutePage = () => {
   const [suggestions, setSuggestions] = useState<Array<{ lng: number; lat: number; title: string; subtitle?: string }>>([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const suggestTimer = useRef<number | null>(null);
+
+  const formatDuration = (minutes: number | null | undefined) => {
+    if (minutes == null) return "—";
+    const totalMinutes = Math.max(0, Math.round(minutes));
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    if (hours <= 0) return `${(totalMinutes / 60).toFixed(1)} ${t("route.hoursShort")}`;
+    if (mins === 0) return `${hours} ${t("route.hoursShort")}`;
+    return `${hours} ${t("route.hoursShort")} ${mins} ${t("route.minutesShort")}`;
+  };
   const { data: kgCenter = null } = useQuery({
     queryKey: ["kg-center-route-page"],
     enabled: Boolean(mapboxToken),
@@ -253,15 +265,15 @@ const RoutePage = () => {
       <div className="container-page grid gap-6 py-6 lg:grid-cols-[420px_1fr]">
         <aside className="rounded-3xl border border-border bg-card p-6 shadow-card">
           <div className="flex items-center justify-between">
-            <div className="font-display text-xl font-semibold">Route to</div>
+            <div className="font-display text-xl font-semibold">{t("route.title")}</div>
             <Button asChild variant="outline" className="h-9 rounded-full px-4 text-xs">
-              <Link href="/dashboard">Back</Link>
+              <Link href="/dashboard">{t("route.back")}</Link>
             </Button>
           </div>
           <div className="mt-2 text-sm text-muted-foreground">{toText}</div>
 
           <div className="mt-6 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Start point</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("route.startPoint")}</div>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Input
@@ -269,7 +281,7 @@ const RoutePage = () => {
                   onChange={(e) => setFromText(e.target.value)}
                   onFocus={() => suggestions.length > 0 && setSuggestOpen(true)}
                   onBlur={() => window.setTimeout(() => setSuggestOpen(false), 150)}
-                  placeholder="Your location (optional)"
+                  placeholder={t("route.yourLocationOptional")}
                   className="h-11 rounded-xl"
                 />
                 {suggestOpen && suggestions.length > 0 && (
@@ -295,7 +307,7 @@ const RoutePage = () => {
                 )}
               </div>
               <Button type="button" className="h-11 rounded-xl" onClick={geocodeFromText} disabled={!mapboxToken}>
-                Set
+                {t("route.set")}
               </Button>
             </div>
             {geoError && <div className="text-xs text-destructive">{geoError}</div>}
@@ -303,27 +315,27 @@ const RoutePage = () => {
 
           <div className="mt-6 rounded-2xl bg-muted/40 p-4 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Distance</span>
-              <span className="font-medium">{distanceKm == null ? "—" : `${distanceKm} km`}</span>
+              <span className="text-muted-foreground">{t("route.distance")}</span>
+              <span className="font-medium">{distanceKm == null ? "—" : `${distanceKm} ${t("route.kmShort")}`}</span>
             </div>
             <div className="mt-2 flex items-center justify-between">
-              <span className="text-muted-foreground">Time</span>
-              <span className="font-medium">{durationMin == null ? "—" : `${durationMin} min`}</span>
+              <span className="text-muted-foreground">{t("route.time")}</span>
+              <span className="font-medium">{formatDuration(durationMin)}</span>
             </div>
           </div>
 
           <div className="mt-6 text-xs text-muted-foreground">
-            {(!mapboxToken && "Mapbox token missing. Add `NEXT_PUBLIC_MAPBOX_TOKEN` to `.env.local`.") ||
-              (toLoading && "Finding destination…") ||
-              (routeLoading && "Building route…") ||
-              (routeError && "Could not build route. Try again or set start point manually.")}
+            {(!mapboxToken && t("route.tokenMissing")) ||
+              (toLoading && t("route.findingDestination")) ||
+              (routeLoading && t("route.buildingRoute")) ||
+              (routeError && t("route.buildFailed"))}
           </div>
         </aside>
 
         <section className="overflow-hidden rounded-3xl bg-[hsl(220_25%_94%)] ring-1 ring-border">
           {!mapboxToken ? (
             <div className="grid h-full min-h-[560px] place-items-center p-10 text-center text-sm text-muted-foreground">
-              Mapbox token missing. Add `NEXT_PUBLIC_MAPBOX_TOKEN` to `.env.local`.
+              {t("route.tokenMissing")}
             </div>
           ) : (
             <div ref={mapContainerRef} className="h-full min-h-[560px] w-full" />

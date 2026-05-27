@@ -1,5 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { api } from "@/lib/api/client";
 
 const resources = {
   en: {
@@ -74,6 +75,22 @@ const resources = {
       tour: { whereYoullBe: "Where you'll be", reviews: "reviews", showAll: "Show all photos", share: "Share", save: "Save", hostedBy: "Hosted by", about: "About this experience", showMore: "Show more", included: "What's included", bookNow: "Book Now", notCharged: "You won't be charged yet", startDate: "START DATE", endDate: "END DATE", guestsLabel: "GUESTS", adults: "{{n}} adults", ecoFee: "Eco-sustainability fee", serviceFee: "Service fee", total: "Total", freeCancellation: "Free cancellation before {{date}}" },
       ai: { title: "Kyrgyz Travel AI", status: "EXPERT GUIDE ONLINE", placeholder: "Ask anything about your trip…", suggestPack: "What should I pack?", suggestHotel: "Find hotels in Karakol", suggestWeather: "Weather forecast", proposed: "PROPOSED TIMELINE", day: "DAY", disclaimer: "AI can make mistakes. Verify important information like visas and safety.", error: "AI assistant is temporarily unavailable. Please try again in a moment." },
       auth: { modalTitle: "Sign in or register", signin: "Sign in", signup: "Create account", email: "Email", phone: "Phone", password: "Password", forgot: "Forgot password?", noAccount: "Don't have an account?", haveAccount: "Already have an account?", continueGoogle: "Continue with Google", or: "or", reset: "Reset password", resetSub: "We'll email you a reset link.", sendLink: "Send reset link" },
+      route: {
+        title: "Route to",
+        back: "Back",
+        startPoint: "START POINT",
+        yourLocationOptional: "Your location (optional)",
+        set: "Set",
+        distance: "Distance",
+        time: "Time",
+        hoursShort: "h",
+        minutesShort: "min",
+        kmShort: "km",
+        tokenMissing: "Mapbox token missing. Add `NEXT_PUBLIC_MAPBOX_TOKEN` to `.env.local`.",
+        findingDestination: "Finding destination…",
+        buildingRoute: "Building route…",
+        buildFailed: "Could not build route. Try again or set start point manually.",
+      },
       dashboard: {
         title: "My account",
         bookings: "Bookings",
@@ -319,16 +336,135 @@ const resources = {
   },
 };
 
-let didInit = false;
+// Use English as the only bundled source of truth and translate other languages on demand.
+const onlineResources = { en: resources.en } as const;
 
-const normalizeLang = (raw?: string | null) => {
+let didInit = false;
+let didBindAutoTranslate = false;
+
+const STORAGE_PREFIX = "kg_travel_i18n_auto_v1:";
+const FLUSH_DELAY_MS = 80;
+const MAX_BATCH = 30;
+
+const getStorageKey = (lng: string) => `${STORAGE_PREFIX}${lng}`;
+
+const isBrowser = () => typeof window !== "undefined";
+
+const loadCachedTranslations = (lng: string) => {
+  if (!isBrowser() || lng === "en") return;
+  try {
+    const raw = localStorage.getItem(getStorageKey(lng));
+    if (!raw) return;
+    const data = JSON.parse(raw) as Record<string, string>;
+    if (!data || typeof data !== "object") return;
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value !== "string") continue;
+      if (!i18n.exists(key, { lng, ns: "translation" })) {
+        i18n.addResource(lng, "translation", key, value);
+      }
+    }
+  } catch {
+    // ignore broken cache
+  }
+};
+
+const persistTranslations = (lng: string, updates: Record<string, string>) => {
+  if (!isBrowser() || lng === "en") return;
+  try {
+    const key = getStorageKey(lng);
+    const prevRaw = localStorage.getItem(key);
+    const prev = (prevRaw ? (JSON.parse(prevRaw) as Record<string, string>) : {}) || {};
+    const next = { ...prev, ...updates };
+    localStorage.setItem(key, JSON.stringify(next));
+  } catch {
+    // ignore storage errors
+  }
+};
+
+const pendingByLang = new Map<string, Map<string, string>>();
+const timerByLang = new Map<string, ReturnType<typeof setTimeout>>();
+const inflightByLang = new Map<string, Promise<void>>();
+
+const queueTranslate = (lng: string, key: string, source: string) => {
+  if (!isBrowser()) return;
+  if (!lng || lng === "en") return;
+  if (!key) return;
+  if (!source) return;
+  if (i18n.exists(key, { lng, ns: "translation" })) return;
+
+  const bucket = pendingByLang.get(lng) ?? new Map<string, string>();
+  pendingByLang.set(lng, bucket);
+  if (!bucket.has(key)) bucket.set(key, source);
+
+  if (timerByLang.has(lng)) return;
+  timerByLang.set(
+    lng,
+    setTimeout(() => {
+      timerByLang.delete(lng);
+      void flushTranslations(lng);
+    }, FLUSH_DELAY_MS)
+  );
+};
+
+const flushTranslations = async (lng: string) => {
+  if (inflightByLang.has(lng)) return inflightByLang.get(lng);
+  const task = (async () => {
+    const bucket = pendingByLang.get(lng);
+    if (!bucket || bucket.size === 0) return;
+
+    const entries = Array.from(bucket.entries()).slice(0, MAX_BATCH);
+    for (const [k] of entries) bucket.delete(k);
+
+    const keys = entries.map(([k]) => k);
+    const texts = entries.map(([, v]) => v);
+
+    try {
+      const res = await api.post("/ai/translate/", { from: "en", to: lng, texts });
+      const translations: unknown = res?.data?.translations;
+      if (!Array.isArray(translations) || translations.length !== texts.length) return;
+
+      const updates: Record<string, string> = {};
+      translations.forEach((value, idx) => {
+        if (typeof value !== "string") return;
+        const k = keys[idx];
+        updates[k] = value;
+        i18n.addResource(lng, "translation", k, value);
+      });
+
+      if (Object.keys(updates).length) persistTranslations(lng, updates);
+    } catch {
+      // ignore translate failures; UI falls back to English.
+    } finally {
+      if (bucket.size > 0) void flushTranslations(lng);
+    }
+  })();
+
+  inflightByLang.set(lng, task);
+  try {
+    await task;
+  } finally {
+    inflightByLang.delete(lng);
+  }
+};
+
+const bindAutoTranslate = () => {
+  if (didBindAutoTranslate) return;
+  didBindAutoTranslate = true;
+
+  i18n.on("languageChanged", (lng) => {
+    const normalized = normalizeLang(lng);
+    loadCachedTranslations(normalized);
+  });
+};
+
+function normalizeLang(raw?: string | null) {
   const v = String(raw || "").trim().toLowerCase();
   if (!v) return "en";
   if (v.startsWith("ru")) return "ru";
   if (v === "kg" || v.startsWith("ky") || v.startsWith("kg")) return "kg";
   if (v.startsWith("en")) return "en";
   return "en";
-};
+}
 
 export function initI18n(initialLang?: string | null) {
   const lng = normalizeLang(initialLang);
@@ -338,12 +474,23 @@ export function initI18n(initialLang?: string | null) {
     // Don't read localStorage here. This module can be evaluated during server rendering.
     // We pass the initial language from a server cookie via `src/app/layout.tsx`.
     i18n.use(initReactI18next).init({
-      resources,
+      resources: onlineResources as any,
       lng,
       fallbackLng: "en",
       interpolation: { escapeValue: false },
+      saveMissing: true,
+      missingKeyHandler: (lngs, ns, key, fallbackValue) => {
+        const target = Array.isArray(lngs) ? lngs[0] : (lngs as any);
+        const normalized = normalizeLang(String(target || ""));
+        const source =
+          (typeof fallbackValue === "string" && fallbackValue) ||
+          (typeof i18n.getResource("en", ns, key) === "string" ? (i18n.getResource("en", ns, key) as string) : "");
+        queueTranslate(normalized, key, source);
+      },
     });
     didInit = true;
+    bindAutoTranslate();
+    loadCachedTranslations(lng);
     return i18n;
   }
 
@@ -352,6 +499,7 @@ export function initI18n(initialLang?: string | null) {
     i18n.changeLanguage(lng);
   }
 
+  loadCachedTranslations(lng);
   return i18n;
 }
 

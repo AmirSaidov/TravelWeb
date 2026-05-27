@@ -12,7 +12,7 @@ import { useAppStore } from "@/store/app";
 import { bookingApi, toursApi } from "@/lib/api";
 import { TourCard } from "@/components/ui-bits/TourCard";
 import { toast } from "@/hooks/use-toast";
-import { Calendar, Settings, Users } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildStaticMapUrl } from "@/lib/mapboxStatic";
 import { geocodePlace } from "@/lib/mapboxGeocoding";
@@ -251,17 +251,21 @@ const Dashboard = () => {
                           <img src={b.tour.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
                         </div>
                         <div className="p-6 md:p-8">
-                          <div className="absolute right-6 top-6 rounded-full bg-brand-soft px-3 py-1 text-[11px] font-semibold tracking-wide text-accent-foreground">
-                            {b.status === "confirmed"
-                              ? t("dashboard.statusConfirmed")
-                              : b.status === "pending"
-                                ? t("dashboard.statusPending")
-                                : b.status === "cancelled"
-                                  ? t("dashboard.statusCancelled")
-                                  : String(b.status).toUpperCase()}
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <div className="font-display text-2xl font-semibold">{b.tour.title}</div>
+                              <div className="mt-1 text-sm text-muted-foreground">{b.tour.location}</div>
+                            </div>
+                            <div className="shrink-0 rounded-full bg-brand-soft px-3 py-1 text-[11px] font-semibold tracking-wide text-accent-foreground">
+                              {b.status === "confirmed"
+                                ? t("dashboard.statusConfirmed")
+                                : b.status === "pending"
+                                  ? t("dashboard.statusPending")
+                                  : b.status === "cancelled"
+                                    ? t("dashboard.statusCancelled")
+                                    : String(b.status).toUpperCase()}
+                            </div>
                           </div>
-                          <div className="font-display text-2xl font-semibold">{b.tour.title}</div>
-                          <div className="mt-1 text-sm text-muted-foreground">{b.tour.location}</div>
                           <div className="mt-4 flex flex-wrap gap-6 text-sm text-muted-foreground">
                             <span className="inline-flex items-center gap-2">
                               <Calendar className="h-4 w-4" /> {b.date ?? "—"}
@@ -385,17 +389,21 @@ const Dashboard = () => {
                             <img src={b.tour.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
                           </div>
                           <div className="p-6 md:p-8">
-                            <div className="absolute right-6 top-6 rounded-full bg-muted px-3 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground">
-                              {b.status === "confirmed"
-                                ? t("dashboard.statusConfirmed")
-                                : b.status === "pending"
-                                  ? t("dashboard.statusPending")
-                                  : b.status === "cancelled"
-                                    ? t("dashboard.statusCancelled")
-                                    : String(b.status).toUpperCase()}
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="font-display text-2xl font-semibold">{b.tour.title}</div>
+                                <div className="mt-1 text-sm text-muted-foreground">{b.tour.location}</div>
+                              </div>
+                              <div className="shrink-0 rounded-full bg-muted px-3 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground">
+                                {b.status === "confirmed"
+                                  ? t("dashboard.statusConfirmed")
+                                  : b.status === "pending"
+                                    ? t("dashboard.statusPending")
+                                    : b.status === "cancelled"
+                                      ? t("dashboard.statusCancelled")
+                                      : String(b.status).toUpperCase()}
+                              </div>
                             </div>
-                            <div className="font-display text-2xl font-semibold">{b.tour.title}</div>
-                            <div className="mt-1 text-sm text-muted-foreground">{b.tour.location}</div>
                             <div className="mt-4 flex flex-wrap gap-6 text-sm text-muted-foreground">
                               <span className="inline-flex items-center gap-2">
                                 <Calendar className="h-4 w-4" /> {b.date ?? "—"}
@@ -477,10 +485,6 @@ const Dashboard = () => {
                   </Button>
                 </div>
                 <div className="mt-6 border-t border-border pt-6 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{t("dashboard.verifiedStatus")}</span>
-                    <Settings className="h-4 w-4 text-primary" />
-                  </div>
                   <div className="mt-4 flex items-center justify-between">
                     <span className="text-muted-foreground">{t("dashboard.memberSince")}</span>
                     <span className="font-medium">{memberSinceLabel}</span>

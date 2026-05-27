@@ -559,7 +559,116 @@ def ai_chat(request):
         if not answer:
             return Response({"answer": _format_tour_recommendations(tour_data)})
 
-        return Response({"answer": _clean_answer(answer)})
+    return Response({"answer": _clean_answer(answer)})
+
+
+def _translate_target_label(lang_code: str) -> str:
+    code = (lang_code or "").strip().lower()
+    if code.startswith("ru"):
+        return "Russian"
+    if code in ("kg", "ky", "kir") or code.startswith("ky"):
+        # Kyrgyz is commonly labeled as "Kyrgyz" in MT systems.
+        return "Kyrgyz"
+    if code.startswith("en"):
+        return "English"
+    return "English"
+
+
+def _normalize_lang_code(lang_code: str) -> str:
+    code = (lang_code or "").strip().lower()
+    if code.startswith("ru"):
+        return "ru"
+    if code in ("kg", "ky", "kir") or code.startswith("ky"):
+        return "kg"
+    if code.startswith("en"):
+        return "en"
+    return "en"
+
+
+@api_view(["POST"])
+def translate_text(request):
+    to_lang = _normalize_lang_code(request.data.get("to", "en"))
+    from_lang = _normalize_lang_code(request.data.get("from", "en"))
+
+    texts = request.data.get("texts", None)
+    text = request.data.get("text", None)
+
+    if texts is None:
+        if text is None:
+            return Response({"error": "Provide `text` or `texts`."}, status=400)
+        texts = [text]
+
+    if not isinstance(texts, list) or any(not isinstance(x, str) for x in texts):
+        return Response({"error": "`texts` must be an array of strings."}, status=400)
+
+    texts = [x.strip() for x in texts]
+    if not texts or all(not x for x in texts):
+        return Response({"translations": [""] * len(texts)})
+
+    # No-op translation.
+    if to_lang == from_lang or to_lang == "en" and from_lang == "en":
+        return Response({"translations": texts})
+
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        # Fallback: return original text if no provider is configured.
+        return Response({"translations": texts})
+
+    model = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip() or DEFAULT_GEMINI_MODEL
+    url = f"{GEMINI_API_BASE_URL}/models/{model}:generateContent"
+
+    target = _translate_target_label(to_lang)
+    prompt = (
+        "You are a professional UI translator.\n"
+        f"Translate the following JSON array of UI strings from { _translate_target_label(from_lang) } to {target}.\n"
+        "Rules:\n"
+        "- Return ONLY a valid JSON array of strings of the same length.\n"
+        "- Preserve placeholders exactly: {{like_this}}, {{n}}, {{date}}, etc.\n"
+        "- Preserve URLs, emails, numbers, and currency codes.\n"
+        "- Keep meaning natural for travel UI.\n\n"
+        f"Input: {json.dumps(texts, ensure_ascii=False)}"
+    )
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+    }
+
+    try:
+        response = requests.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": api_key,
+            },
+            json=payload,
+            timeout=30,
+        )
+    except requests.RequestException:
+        logger.exception("Gemini translate request failed")
+        return Response({"translations": texts})
+
+    data = _parse_json_response(response)
+    if response.status_code != 200:
+        logger.error("Gemini translate error status_code=%s response.text=%s", response.status_code, response.text)
+        return Response({"translations": texts})
+
+    answer = _extract_answer(data) or ""
+    answer = _clean_answer(answer).strip()
+    if not answer:
+        return Response({"translations": texts})
+
+    try:
+        parsed = json.loads(answer)
+        if isinstance(parsed, list) and len(parsed) == len(texts) and all(isinstance(x, str) for x in parsed):
+            return Response({"translations": parsed})
+    except Exception:
+        # If the model returned a single string, use it for the first item.
+        pass
+
+    if len(texts) == 1:
+        return Response({"translations": [answer]})
+
+    return Response({"translations": texts})
 
     if is_budget_request(message):
         destination = resolve_budget_destination(message)

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Search, Leaf } from "lucide-react";
+import { Search } from "lucide-react";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { TourCard, TourCardSkeleton } from "@/components/ui-bits/TourCard";
 import { useQuery } from "@tanstack/react-query";
@@ -314,14 +314,6 @@ const Explore = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-brand-soft p-4">
-            <div className="mb-2 grid h-9 w-9 place-items-center rounded-xl bg-brand text-brand-foreground"><Leaf className="h-4 w-4" /></div>
-            <div className="font-display text-base font-semibold">{t("explore.sustainable")}</div>
-            <p className="mt-1 text-xs text-accent-foreground/80">{t("explore.sustainableText")}</p>
-            <Link href="#" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline">
-              {t("explore.learnMore")} →
-            </Link>
-          </div>
         </aside>
 
         {/* RESULTS */}
@@ -471,16 +463,6 @@ const Explore = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-brand-soft p-4">
-                    <div className="mb-2 grid h-9 w-9 place-items-center rounded-xl bg-brand text-brand-foreground">
-                      <Leaf className="h-4 w-4" />
-                    </div>
-                    <div className="font-display text-base font-semibold">{t("explore.sustainable")}</div>
-                    <p className="mt-1 text-xs text-accent-foreground/80">{t("explore.sustainableText")}</p>
-                    <Link href="#" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline">
-                      {t("explore.learnMore")} →
-                    </Link>
-                  </div>
                 </div>
 
               <div className="fixed bottom-0 left-0 right-0 border-t bg-background/90 p-4 backdrop-blur">

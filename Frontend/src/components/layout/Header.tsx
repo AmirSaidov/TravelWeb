@@ -36,7 +36,7 @@ export const Header = () => {
   const setCurrency = useAppStore((s) => s.setCurrency);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -99,10 +99,10 @@ export const Header = () => {
             variant="outline"
             size="sm"
             className="h-9 w-9 rounded-xl p-0 transition-transform duration-200 hover:scale-[1.03]"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
             aria-label="Toggle theme"
           >
-            {mounted && theme === "dark" ? (
+            {mounted && resolvedTheme === "dark" ? (
               <Sun className="h-4 w-4 text-amber-500" />
             ) : (
               <Moon className="h-4 w-4 text-indigo-500" />
