@@ -414,9 +414,10 @@ const Home = () => {
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => popular[0] && router.push(`/tour/${popular[0].slug}`)}
+            <a
+              href={popular[0] ? `/tour/${popular[0].slug}` : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
               className="group relative aspect-[4/3] overflow-hidden rounded-2xl shadow-elevated ring-1 ring-black/10 md:col-span-8 md:aspect-auto md:h-full"
             >
               <img
@@ -434,7 +435,7 @@ const Home = () => {
                   <div className="text-sm text-white/85">{popular[0]?.region}</div>
                 </div>
               </div>
-            </button>
+            </a>
           )}
 
           <div className="grid gap-6 md:col-span-4 md:grid-rows-2 md:h-full">
@@ -452,10 +453,11 @@ const Home = () => {
                   </div>
                 ))
               : [popular[1], popular[2]].filter(Boolean).map((p) => (
-                  <button
+                  <a
                     key={p.id}
-                    type="button"
-                    onClick={() => router.push(`/tour/${p.slug}`)}
+                    href={`/tour/${p.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="group relative aspect-[16/9] overflow-hidden rounded-2xl shadow-elevated ring-1 ring-black/10 md:aspect-auto md:h-full"
                   >
                     <img src={p.hero} alt={p.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -464,7 +466,7 @@ const Home = () => {
                       <div className="font-display text-xl font-semibold">{p.title}</div>
                       <div className="text-xs text-white/85">{p.location}</div>
                     </div>
-                  </button>
+                  </a>
                 ))}
           </div>
         </div>
@@ -493,7 +495,7 @@ const Home = () => {
                 </div>
               ))
             : curated.map((tr) => (
-                <Link key={tr.id} href={`/tour/${tr.slug}`} className="group block">
+                <Link key={tr.id} href={`/tour/${tr.slug}`} target="_blank" rel="noopener noreferrer" className="group block">
                   <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-card ring-1 ring-black/10">
                     <img src={tr.hero} alt={tr.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
