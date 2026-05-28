@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api/client";
 import { getPageContext, initPageActionTracking } from "@/lib/aiContext";
+import { AIMessageMarkdown } from "@/components/ai/AIMessageMarkdown";
 
 interface DayBlock { day: number; title: string; tag: "Culture" | "Nature" | "Adventure"; text: string; img: string; }
 interface Msg { id: string; role: "user" | "assistant"; text?: string; timeline?: DayBlock[]; pricePerPerson?: number; ts: number; }
@@ -126,17 +127,21 @@ export const AIAssistant = () => {
               {messages.map((m) => (
                 <div key={m.id}>
                   {m.role === "user" ? (
-                    <div className="ml-auto max-w-[80%] space-y-1 text-right">
-                      <div className="rounded-2xl rounded-tr-sm bg-secondary px-4 py-2.5 text-left text-sm">{m.text}</div>
+                    <div className="ml-auto max-w-[88%] space-y-1 text-right sm:max-w-[80%]">
+                      <div className="overflow-hidden rounded-2xl rounded-tr-sm bg-secondary px-4 py-2.5 text-left text-sm leading-6 break-words">{m.text}</div>
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">JUST NOW</div>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
+                    <div className="flex min-w-0 gap-2">
                       <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-gradient-to-br from-brand to-emerald-700">
                         <Globe2 className="h-3.5 w-3.5 text-white" />
                       </div>
-                      <div className="max-w-[85%] space-y-3">
-                        {m.text && <div className="rounded-2xl rounded-tl-sm bg-muted/60 px-4 py-2.5 text-sm">{m.text}</div>}
+                      <div className="min-w-0 max-w-[88%] space-y-3">
+                        {m.text && (
+                          <div className="overflow-hidden rounded-2xl rounded-tl-sm bg-muted/60 px-4 py-3">
+                            <AIMessageMarkdown content={m.text} />
+                          </div>
+                        )}
                         {m.timeline && (
                           <div>
                             <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">

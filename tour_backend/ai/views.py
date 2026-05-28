@@ -40,8 +40,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
-MAX_ANSWER_SENTENCES = 5
-MAX_ANSWER_CHARS = 700
+MAX_ANSWER_SENTENCES = 12
+MAX_ANSWER_CHARS = 1800
 MAX_CONTEXT_TEXT_CHARS = 6000
 MAX_CONTEXT_JSON_CHARS = 12000
 MAX_CONTEXT_LIST_ITEMS = 60
@@ -68,9 +68,24 @@ Do not invent current weather, prices, availability, schedules, bookings, hotel 
 If weather_service_data is unavailable, honestly say that the live forecast is unavailable.
 Give practical tourist weather recommendations: clothing, road conditions, mountains, rain, wind, and temperature.
 Answer in the user's language when it is clear; if the message is unclear or random, answer in Russian.
-Keep answers short and useful: 2-5 sentences.
+Format answers in clean Markdown, similar to ChatGPT.
+Use short paragraphs, blank lines, headings when useful, bullet lists, and bold text for important names, prices, and warnings.
+Use emoji moderately for travel facts such as price, duration, location, difficulty, weather, and links.
+For tour recommendations, structure each tour like:
+## 1. Tour Name
+💰 **Price**
+🕒 **Duration**
+📍 **Destination**
+🥾 **Difficulty**
+
+Short explanation.
+
+🔗 [Open tour](/tour/example)
+Use real URLs from tour_data when available.
+Use inline code only for paths, IDs, or technical values.
+Keep answers concise and scannable.
 Do not start with greetings.
-Do not use markdown, headings, long lists, or excessive formatting."""
+Do not overuse emoji or create very long lists."""
 
 
 def _parse_json_response(response):
@@ -285,13 +300,10 @@ def _clean_answer(answer):
     answer = re.sub(r"(?i)\bas an ai,?\s*", "", answer)
     answer = re.sub(r"(?i)\bhope this helps[.!]?", "", answer)
     answer = re.sub(r"(?i)\bнадеюсь,?\s+это\s+поможет[.!]?", "", answer)
-    answer = re.sub(r"(?m)^\s{0,3}#{1,6}\s*", "", answer)
     answer = re.sub(r"(?m)^\s*[-*_]{3,}\s*$", "", answer)
-    answer = re.sub(r"(#{2,}|-{3,}|\*\*|__|\*|`)", "", answer)
-    answer = re.sub(r"(?m)^\s*[-*]\s+", "", answer)
     answer = _strip_openers(answer)
-    answer = re.sub(r"\s*\n\s*", " ", answer)
     answer = re.sub(r"[ \t]{2,}", " ", answer)
+    answer = re.sub(r"\n{4,}", "\n\n\n", answer)
     return _limit_answer(answer.strip())
 
 
@@ -423,7 +435,7 @@ def _format_tour_recommendations(tours):
         return "Сейчас я не нашел подходящих туров на сайте. Можете изменить бюджет, направление или количество дней."
 
     selected = tours[:3]
-    lines = [f"Я нашел {len(selected)} подходящих тура:" if len(selected) != 1 else "Я нашел подходящий тур:"]
+    lines = [f"# Подходящие туры\n\nЯ нашел {len(selected)} подходящих тура:" if len(selected) != 1 else "# Подходящий тур\n\nЯ нашел подходящий тур:"]
     for index, tour in enumerate(selected, start=1):
         title = tour.get("title") or "Тур"
         destination = tour.get("destination") or "направление не указано"
@@ -431,10 +443,15 @@ def _format_tour_recommendations(tours):
         difficulty = tour.get("difficulty") or "не указана"
         description = _truncate_text(tour.get("description") or "", 180)
         reason = description or f"Подходит для поездки в направление {destination}."
+        url = tour.get("url") or f"/tour/{tour.get('id')}"
         lines.append(
-            f"{index}. {title} — {_format_tour_price(tour)}. "
-            f"Длительность: {duration} дн., направление: {destination}, сложность: {difficulty}. "
-            f"{reason} Открыть тур: {tour.get('url') or ('/tour/' + str(tour.get('id')))}"
+            f"## {index}. {title}\n\n"
+            f"💰 **{_format_tour_price(tour)}**  \n"
+            f"🕒 **{duration} дн.**  \n"
+            f"📍 **{destination}**  \n"
+            f"🥾 **Сложность:** {difficulty}\n\n"
+            f"{reason}\n\n"
+            f"🔗 [Открыть тур]({url})"
         )
     return "\n\n".join(lines)
 
