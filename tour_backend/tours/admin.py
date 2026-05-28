@@ -27,12 +27,12 @@ class UserAdmin(admin.ModelAdmin):
 @admin.register(Tour)
 class TourAdmin(admin.ModelAdmin):
     list_display = ("id", "title", "price", "currency", "location", "lat", "lng", "difficulty", "max_people", "created_at")
-    search_fields = ("title", "location", "currency")
+    search_fields = ("title", "title_ru", "title_en", "title_ky", "location", "currency")
     list_filter = ("difficulty",)
     readonly_fields = ("created_at",)
     fields = (
-        "title",
-        "description",
+        "title_ru",
+        "description_ru",
         "price",
         "currency",
         "location",
@@ -48,6 +48,16 @@ class TourAdmin(admin.ModelAdmin):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
+        if "title_ru" in form.base_fields:
+            form.base_fields["title_ru"].label = "Title"
+            form.base_fields["title_ru"].help_text = (
+                "Russian source text. English and Kyrgyz are generated automatically on save."
+            )
+        if "description_ru" in form.base_fields:
+            form.base_fields["description_ru"].label = "Description"
+            form.base_fields["description_ru"].help_text = (
+                "Russian source text. English and Kyrgyz are generated automatically on save."
+            )
         if "lat" in form.base_fields and "lng" in form.base_fields:
             form.base_fields["lat"].help_text = mark_safe(
                 """

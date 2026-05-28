@@ -1,6 +1,7 @@
 from urllib.parse import urljoin
 
 from django.conf import settings
+from django.utils.translation import get_language
 from rest_framework import serializers
 
 from .models import Review, Tour
@@ -38,11 +39,38 @@ def get_tour_image_url(tour: Tour, request=None) -> str:
 
 
 class TourSerializer(serializers.ModelSerializer):
+    title = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
     currency = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     rating_avg = serializers.FloatField(read_only=True)
     review_count = serializers.IntegerField(read_only=True)
+
+    def _active_language(self) -> str:
+        language = (get_language() or getattr(settings, "LANGUAGE_CODE", "ru") or "ru").lower()
+        return language.split("-")[0]
+
+    def _translated_value(self, obj: Tour, field_name: str) -> str:
+        language = self._active_language()
+        fallback_language = "ru"
+        candidates = [
+            f"{field_name}_{language}",
+            f"{field_name}_{fallback_language}",
+            field_name,
+        ]
+
+        for candidate in dict.fromkeys(candidates):
+            value = getattr(obj, candidate, None)
+            if value:
+                return str(value)
+        return ""
+
+    def get_title(self, obj: Tour) -> str:
+        return self._translated_value(obj, "title")
+
+    def get_description(self, obj: Tour) -> str:
+        return self._translated_value(obj, "description")
     
     def _requested_currency(self) -> str:
         req = self.context.get("request") if isinstance(self.context, dict) else None
