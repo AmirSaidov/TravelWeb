@@ -3,7 +3,9 @@ from __future__ import annotations
 import re
 from decimal import Decimal
 from typing import Any
+from urllib.parse import urljoin
 
+from django.conf import settings
 from django.db.models import Q, QuerySet
 
 from tours.models import Tour
@@ -27,10 +29,41 @@ TOUR_RECOMMENDATION_KEYWORDS = [
 
 DESTINATION_ALIASES = {
     "bishkek": ["bishkek", "бишкек", "бишкеке"],
-    "osh": ["osh", "ош", "оше"],
-    "issyk-kul": ["issyk kul", "issyk-kul", "иссык куль", "иссык-куль", "иссык куле", "ысык кол", "ысык көл"],
+    "osh": ["osh", "osh region", "ош", "оше", "ошская", "ошской", "ошская область"],
+    "issyk-kul": [
+        "issyk kul",
+        "issyk-kul",
+        "issyk lake",
+        "иссык куль",
+        "иссык-куль",
+        "иссык кул",
+        "иссык-кул",
+        "иссык куле",
+        "иссык-куле",
+        "ысык кол",
+        "ысык көл",
+        "ысык-көл",
+        "ысык-кул",
+        "ысык кул",
+        "ысик кол",
+        "ысик көл",
+        "ысик кул",
+        "исик кул",
+    ],
     "karakol": ["karakol", "каракол", "караколе"],
-    "son-kul": ["son kul", "son-kul", "song kul", "сон куль", "сон-куль", "сон куле", "сонкуль"],
+    "son-kul": [
+        "son kul",
+        "son-kul",
+        "song kul",
+        "сон куль",
+        "сон-куль",
+        "сон кул",
+        "сон-кул",
+        "сон куле",
+        "сон-куле",
+        "сонкуль",
+        "сонкул",
+    ],
     "naryn": ["naryn", "нарын", "нарыне"],
     "ala-archa": ["ala archa", "ala-archa", "ала арча", "ала-арча", "ала арче"],
     "cholpon-ata": ["cholpon ata", "cholpon-ata", "чолпон ата", "чолпон-ата", "чолпон ате"],
@@ -72,13 +105,10 @@ DIFFICULTY_ALIASES = {
 
 
 def _normalize_text(value: str) -> str:
-    normalized = value.lower().replace("ё", "е").replace("-", " ")
+    normalized = str(value or "").lower()
+    normalized = normalized.replace("ё", "е").replace("ө", "о").replace("ү", "у")
+    normalized = normalized.replace("-", " ")
     return re.sub(r"\s+", " ", normalized).strip()
-
-
-def _slugify(value: str) -> str:
-    slug = re.sub(r"[^\w]+", "-", _normalize_text(value), flags=re.UNICODE).strip("-")
-    return slug or "tour"
 
 
 def is_tour_recommendation_request(message: str) -> bool:
@@ -196,13 +226,44 @@ def parse_tour_filters(message: str) -> dict[str, Any]:
     return filters
 
 
+def _tour_search_fields() -> list[str]:
+    available_fields = {field.name for field in Tour._meta.get_fields()}
+    fields = ["location", "title", "description"]
+    if "destination" in available_fields:
+        fields.append("destination")
+    return fields
+
+
 def _apply_destination_filter(queryset: QuerySet[Tour], destination: str) -> QuerySet[Tour]:
     display = DESTINATION_DISPLAY.get(destination, destination)
     aliases = DESTINATION_ALIASES.get(destination, [destination, display])
     query = Q()
     for value in {destination, display, *aliases}:
-        query |= Q(location__icontains=value) | Q(title__icontains=value) | Q(description__icontains=value)
+        if not value:
+            continue
+        for field in _tour_search_fields():
+            query |= Q(**{f"{field}__icontains": value})
     return queryset.filter(query)
+
+
+def _tour_destination_text(tour: Tour) -> str:
+    values = [getattr(tour, field, "") or "" for field in _tour_search_fields()]
+    return f" {_normalize_text(' '.join(str(value) for value in values))} "
+
+
+def _tour_matches_destination(tour: Tour, destination: str) -> bool:
+    display = DESTINATION_DISPLAY.get(destination, destination)
+    aliases = DESTINATION_ALIASES.get(destination, [destination, display])
+    text = _tour_destination_text(tour)
+
+    for value in {destination, display, *aliases}:
+        normalized_value = _normalize_text(str(value))
+        if not normalized_value:
+            continue
+        pattern = rf"(?<!\w){re.escape(normalized_value)}(?!\w)"
+        if re.search(pattern, text):
+            return True
+    return False
 
 
 def _tour_matches_activity(tour: Tour, activity_type: str) -> bool:
@@ -216,7 +277,47 @@ def _tour_matches_activity(tour: Tour, activity_type: str) -> bool:
 
 
 def _tour_url(tour: Tour) -> str:
-    return f"/tour/{tour.id}-{_slugify(tour.title)}"
+    raw_url = getattr(tour, "url", None)
+    if raw_url:
+        return str(raw_url)
+
+    slug = getattr(tour, "slug", None)
+    if slug:
+        slug = str(slug).strip("/")
+        return f"/tour/{slug}"
+
+    return f"/tour/{tour.id}"
+
+
+def _media_url(url: str, request=None) -> str | None:
+    if not url:
+        return None
+
+    if url.startswith(("http://", "https://", "//", "data:")):
+        return url
+
+    public_base_url = getattr(settings, "PUBLIC_BASE_URL", "")
+    if public_base_url:
+        return urljoin(f"{public_base_url}/", url.lstrip("/"))
+
+    return request.build_absolute_uri(url) if request else url
+
+
+def _tour_image_url(tour: Tour, request=None) -> str | None:
+    image = getattr(tour, "image", None)
+    if not image:
+        return None
+
+    raw = str(image)
+    if raw.startswith(("http://", "https://", "//", "data:")):
+        return raw
+
+    try:
+        url = image.url
+    except (AttributeError, ValueError):
+        return _media_url(raw, request)
+
+    return _media_url(url, request)
 
 
 def _format_price(value: Decimal | float | int) -> int | float:
@@ -246,9 +347,20 @@ def _tour_to_dict(tour: Tour) -> dict[str, Any]:
     }
 
 
-def get_available_tours(filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+def _get_filtered_tours(filters: dict[str, Any] | None = None, limit: int = 40) -> list[Tour]:
     filters = filters or {}
     queryset = Tour.objects.all().order_by("price", "duration", "id")
+
+    exclude_ids = filters.get("exclude_ids") or []
+    if isinstance(exclude_ids, (list, tuple, set)):
+        safe_exclude_ids = []
+        for item in exclude_ids:
+            try:
+                safe_exclude_ids.append(int(item))
+            except (TypeError, ValueError):
+                continue
+        if safe_exclude_ids:
+            queryset = queryset.exclude(id__in=safe_exclude_ids)
 
     destination = filters.get("destination")
     if destination:
@@ -276,9 +388,45 @@ def get_available_tours(filters: dict[str, Any] | None = None) -> list[dict[str,
     elif travel_style == "comfort":
         queryset = queryset.order_by("-price", "-duration", "id")
 
-    tours = list(queryset[:40])
+    if destination and filters.get("strict_destination"):
+        tours = [tour for tour in queryset if _tour_matches_destination(tour, str(destination))]
+    else:
+        tours = list(queryset[:limit])
+
     activity_type = filters.get("activity_type")
     if activity_type:
         tours = [tour for tour in tours if _tour_matches_activity(tour, str(activity_type))]
 
-    return [_tour_to_dict(tour) for tour in tours[:8]]
+    return tours[:limit]
+
+
+def _tour_to_card(tour: Tour, request=None) -> dict[str, Any]:
+    return {
+        "type": "tour",
+        "id": tour.id,
+        "title": tour.title,
+        "price": _format_price(tour.price),
+        "currency": (getattr(tour, "currency", "") or "KGS").upper(),
+        "duration_days": tour.duration,
+        "destination": tour.location,
+        "difficulty": tour.difficulty,
+        "description": (tour.description or "")[:220],
+        "image": _tour_image_url(tour, request),
+        "url": _tour_url(tour),
+    }
+
+
+def get_available_tours(filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    filters = filters or {}
+    requested_limit = int(filters.get("limit") or 8)
+    limit = max(1, min(20, requested_limit))
+    tours = _get_filtered_tours(filters, limit=40)
+    return [_tour_to_dict(tour) for tour in tours[:limit]]
+
+
+def get_tour_cards(filters: dict[str, Any] | None = None, limit: int = 3, request=None) -> list[dict[str, Any]]:
+    filters = filters or {}
+    limit = int(filters.get("limit") or limit)
+    limit = max(1, min(20, limit))
+    tours = _get_filtered_tours(filters, limit=40)
+    return [_tour_to_card(tour, request) for tour in tours[:limit]]
