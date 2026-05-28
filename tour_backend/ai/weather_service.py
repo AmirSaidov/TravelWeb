@@ -4,15 +4,24 @@ from datetime import date as date_cls
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from zoneinfo import ZoneInfoNotFoundError
+import logging
 import re
+import time
 from typing import Any
 
+from django.core.cache import cache
 import requests
 
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
-WEATHER_TIMEOUT_SECONDS = 10
+WEATHER_TIMEOUT_SECONDS = 20
+WEATHER_RETRY_COUNT = 2
+WEATHER_RETRY_DELAY_SECONDS = 0.7
+WEATHER_CACHE_SECONDS = 10 * 60
 WEATHER_TIMEZONE = "Asia/Bishkek"
+WEATHER_FALLBACK_MESSAGE = "Сейчас live-прогноз временно недоступен. Могу дать сезонную рекомендацию."
+
+logger = logging.getLogger(__name__)
 
 
 class WeatherServiceError(Exception):
@@ -127,6 +136,9 @@ LOCATIONS: dict[str, dict[str, Any]] = {
             "иссык-куль",
             "ысык кол",
             "ысык көл",
+            "ысик кол",
+            "ысик көл",
+            "ысик кул",
             "issyk kul",
             "issyk-kul",
             "issyk lake",
@@ -338,24 +350,48 @@ def _tourist_recommendation(
     return "; ".join(tips).capitalize() + "."
 
 
+def _open_meteo_params(location_meta: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "latitude": location_meta["lat"],
+        "longitude": location_meta["lon"],
+        "current": "temperature_2m,apparent_temperature,precipitation,rain,snowfall,weather_code,wind_speed_10m",
+        "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,rain_sum,snowfall_sum,wind_speed_10m_max",
+        "timezone": WEATHER_TIMEZONE,
+        "forecast_days": 7,
+    }
+
+
 def _request_open_meteo(location_meta: dict[str, Any]) -> dict[str, Any]:
-    response = requests.get(
-        OPEN_METEO_URL,
-        params={
-            "latitude": location_meta["lat"],
-            "longitude": location_meta["lon"],
-            "current": "temperature_2m,apparent_temperature,precipitation,rain,snowfall,weather_code,wind_speed_10m",
-            "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,rain_sum,snowfall_sum,wind_speed_10m_max",
-            "timezone": WEATHER_TIMEZONE,
-            "forecast_days": 7,
-        },
-        timeout=WEATHER_TIMEOUT_SECONDS,
-    )
-    response.raise_for_status()
-    data = response.json()
-    if not isinstance(data, dict):
-        raise WeatherServiceError("Open-Meteo returned invalid response")
-    return data
+    params = _open_meteo_params(location_meta)
+    last_error: Exception | None = None
+
+    for attempt in range(WEATHER_RETRY_COUNT + 1):
+        try:
+            response = requests.get(
+                OPEN_METEO_URL,
+                params=params,
+                timeout=WEATHER_TIMEOUT_SECONDS,
+            )
+            response.raise_for_status()
+            data = response.json()
+            if not isinstance(data, dict):
+                raise WeatherServiceError("Open-Meteo returned invalid response")
+            return data
+        except (requests.RequestException, ValueError, WeatherServiceError) as exc:
+            last_error = exc
+            if attempt < WEATHER_RETRY_COUNT:
+                logger.warning(
+                    "Open-Meteo request attempt %s/%s failed: %s",
+                    attempt + 1,
+                    WEATHER_RETRY_COUNT + 1,
+                    exc,
+                )
+                time.sleep(WEATHER_RETRY_DELAY_SECONDS * (attempt + 1))
+                continue
+
+            logger.exception("Open-Meteo request failed after %s attempts", WEATHER_RETRY_COUNT + 1)
+
+    raise WeatherServiceError("Open-Meteo request failed") from last_error
 
 
 def _daily_summary_for_date(data: dict[str, Any], weather_date: str) -> dict[str, Any]:
@@ -490,17 +526,51 @@ def _weather_from_daily(location_key: str, data: dict[str, Any], weather_date: s
     }
 
 
+def _weather_cache_key(location_key: str, date: str | None = None) -> str:
+    return f"ai:weather:{location_key}:{date or 'current'}"
+
+
+def _fallback_weather_response(location_key: str, date: str | None = None) -> dict[str, Any]:
+    location_meta = LOCATIONS[location_key]
+    return {
+        "location": location_meta["name"],
+        "temperature": None,
+        "feels_like": None,
+        "precipitation": None,
+        "rain": None,
+        "snowfall": None,
+        "wind_speed": None,
+        "weather_code": None,
+        "weather_description": "live forecast unavailable",
+        "temp_max": None,
+        "temp_min": None,
+        "temperature_max": None,
+        "temperature_min": None,
+        "date": date or _today().isoformat(),
+        "source": "Open-Meteo",
+        "is_fallback": True,
+        "weather_unavailable": True,
+        "message": WEATHER_FALLBACK_MESSAGE,
+        "tourist_recommendation": WEATHER_FALLBACK_MESSAGE,
+        "recommendation": WEATHER_FALLBACK_MESSAGE,
+    }
+
+
 def get_weather(location_name: str, date: str | None = None) -> dict[str, Any]:
     location_key = location_name if location_name in LOCATIONS else resolve_location(location_name)
     if not location_key:
         raise WeatherServiceError("Unknown Kyrgyzstan location")
 
+    cache_key = _weather_cache_key(location_key, date)
+    cached_weather = cache.get(cache_key)
+    if isinstance(cached_weather, dict):
+        return cached_weather
+
     try:
         data = _request_open_meteo(LOCATIONS[location_key])
-    except requests.RequestException as exc:
-        raise WeatherServiceError("Open-Meteo request failed") from exc
-
-    if not date:
-        return _weather_from_current(location_key, data)
-
-    return _weather_from_daily(location_key, data, date)
+        weather = _weather_from_current(location_key, data) if not date else _weather_from_daily(location_key, data, date)
+        cache.set(cache_key, weather, WEATHER_CACHE_SECONDS)
+        return weather
+    except WeatherServiceError:
+        logger.exception("Weather fallback used location=%s date=%s", location_key, date)
+        return _fallback_weather_response(location_key, date)

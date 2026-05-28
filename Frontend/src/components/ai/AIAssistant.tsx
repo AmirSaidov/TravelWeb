@@ -9,14 +9,23 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api/client";
 import { getPageContext, initPageActionTracking } from "@/lib/aiContext";
 import { AIMessageMarkdown } from "@/components/ai/AIMessageMarkdown";
+import { AITourCards } from "@/components/ai/AITourCards";
+import { AIWeatherCards } from "@/components/ai/AIWeatherCards";
+import type { AICard, AIResponse } from "@/components/ai/types";
 
 interface DayBlock { day: number; title: string; tag: "Culture" | "Nature" | "Adventure"; text: string; img: string; }
-interface Msg { id: string; role: "user" | "assistant"; text?: string; timeline?: DayBlock[]; pricePerPerson?: number; ts: number; }
-type AiChatResponse = { answer: string };
+interface Msg { id: string; role: "user" | "assistant"; text?: string; cards?: AICard[]; timeline?: DayBlock[]; pricePerPerson?: number; ts: number; }
 
 const createId = () => Math.random().toString(36).slice(2);
 
 const initial: Msg[] = [];
+
+const toRecentMessages = (items: Msg[]) =>
+  items.slice(-8).map((item) => ({
+    role: item.role,
+    content: item.text ?? "",
+    cards: item.cards ?? [],
+  }));
 
 export const AIAssistant = () => {
   const { t } = useTranslation();
@@ -42,17 +51,23 @@ export const AIAssistant = () => {
     if (!message || isLoading) return;
 
     const userMsg: Msg = { id: createId(), role: "user", text: message, ts: Date.now() };
-    setMessages((m) => [...m, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     setInput("");
     setIsLoading(true);
 
     try {
-      const { data } = await api.post<AiChatResponse>("/ai/chat/", { message, context: getPageContext() });
+      const { data } = await api.post<AIResponse>("/ai/chat/", {
+        message,
+        context: getPageContext(),
+        recent_messages: toRecentMessages(nextMessages),
+      });
       setMessages((m) => [
         ...m,
         {
           id: createId(), role: "assistant", ts: Date.now(),
           text: data.answer,
+          cards: data.cards,
         },
       ]);
     } catch {
@@ -142,6 +157,8 @@ export const AIAssistant = () => {
                             <AIMessageMarkdown content={m.text} />
                           </div>
                         )}
+                        <AIWeatherCards cards={m.cards} />
+                        <AITourCards cards={m.cards} />
                         {m.timeline && (
                           <div>
                             <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
