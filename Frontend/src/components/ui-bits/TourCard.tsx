@@ -34,7 +34,7 @@ export const TourCard = ({ tour, layout = "vertical" }: { tour: Tour; layout?: "
         <button
           type="button"
           onClick={(e) => { e.preventDefault(); toggleSave(tour.id); }}
-          className="group/save absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-foreground shadow-sm backdrop-blur transition-all duration-300 hover:scale-110 hover:bg-white active:scale-95"
+          className="group/save absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-surface/90 text-foreground shadow-sm backdrop-blur transition-all duration-300 hover:scale-110 hover:bg-surface active:scale-95"
           aria-label="Save tour"
         >
           {saved && <span className="absolute inset-0 rounded-full bg-destructive/20 animate-ping" />}

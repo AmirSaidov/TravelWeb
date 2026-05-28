@@ -28,10 +28,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const lang = cookies().get("lang")?.value ?? "en";
+  const lang = cookies().get("lang")?.value ?? "ru";
   return (
-    <html lang={lang || "en"}>
-      <body className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang={lang || "en"} suppressHydrationWarning>
+      <body className={`${inter.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
         <Providers initialLang={lang}>
           <SiteLayout>{children}</SiteLayout>
         </Providers>

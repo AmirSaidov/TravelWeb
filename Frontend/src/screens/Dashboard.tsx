@@ -17,11 +17,13 @@ import { cn } from "@/lib/utils";
 import { buildStaticMapUrl } from "@/lib/mapboxStatic";
 import { geocodePlace } from "@/lib/mapboxGeocoding";
 import { format, parseISO } from "date-fns";
+import Image from "next/image";
 
 const Dashboard = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { user, bookings, saved, signIn, cancelBooking, currency, setAvatar } = useAppStore();
+  const currentLang = i18n.language;
   const [tab, setTab] = useState<"bookings" | "saved" | "profile">("bookings");
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
@@ -48,7 +50,7 @@ const Dashboard = () => {
   const [pastOpen, setPastOpen] = useState(false);
 
   const { data: apiTours = [] } = useQuery({
-    queryKey: ["tours", currency],
+    queryKey: ["tours", currency, currentLang],
     queryFn: () => toursApi.getTours(currency),
   });
 
@@ -248,7 +250,7 @@ const Dashboard = () => {
                     <div key={b.id} className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-card">
                       <div className="grid grid-cols-1 md:grid-cols-[320px_1fr]">
                         <div className="relative aspect-[4/3] md:aspect-auto">
-                          <img src={b.tour.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                          <Image src={b.tour.image} alt="" fill sizes="320px" className="object-cover" />
                         </div>
                         <div className="p-6 md:p-8">
                           <div className="flex items-start justify-between gap-4">
@@ -327,8 +329,8 @@ const Dashboard = () => {
                     return (
                       <div key={b.id} className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-card">
                         <div className="grid grid-cols-1 md:grid-cols-[320px_1fr]">
-                          <div className="relative aspect-[4/3] md:aspect-auto">
-                            <img src={tr.hero} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                        <div className="relative aspect-[4/3] md:aspect-auto">
+                            <Image src={tr.hero} alt="" fill sizes="320px" className="object-cover" />
                           </div>
                           <div className="p-6 md:p-8">
                             <div className="absolute right-6 top-6 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold tracking-wide text-primary-foreground">
@@ -386,7 +388,7 @@ const Dashboard = () => {
                       <div key={`past-${b.id}`} className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-card opacity-95">
                         <div className="grid grid-cols-1 md:grid-cols-[320px_1fr]">
                           <div className="relative aspect-[4/3] md:aspect-auto">
-                            <img src={b.tour.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                            <Image src={b.tour.image} alt="" fill sizes="320px" className="object-cover" />
                           </div>
                           <div className="p-6 md:p-8">
                             <div className="flex items-start justify-between gap-4">
@@ -431,7 +433,7 @@ const Dashboard = () => {
                         <div key={`past-local-${b.id}`} className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-card opacity-95">
                           <div className="grid grid-cols-1 md:grid-cols-[320px_1fr]">
                             <div className="relative aspect-[4/3] md:aspect-auto">
-                              <img src={tr.hero} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                            <Image src={tr.hero} alt="" fill sizes="320px" className="object-cover" />
                             </div>
                             <div className="p-6 md:p-8">
                               <div className="absolute right-6 top-6 rounded-full bg-muted px-3 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground">
@@ -496,7 +498,7 @@ const Dashboard = () => {
                 <div className="font-display text-lg font-semibold">{t("dashboard.travelFootprint")}</div>
                 <div className="mt-4 overflow-hidden rounded-2xl bg-muted">
                   {footprintMapUrl ? (
-                    <img src={footprintMapUrl} alt="" className="h-full w-full object-cover" />
+                    <Image src={footprintMapUrl} alt="" fill sizes="520px" className="object-cover" unoptimized />
                   ) : (
                     <div className="relative aspect-[4/3] bg-[radial-gradient(circle_at_30%_20%,rgba(0,0,0,0.08),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(0,0,0,0.06),transparent_60%)]" />
                   )}
@@ -554,23 +556,23 @@ const Dashboard = () => {
             />
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="outline" className="h-10 rounded-xl" onClick={() => avatarInputRef.current?.click()}>
-                Change avatar…
+                {t("dashboard.changeAvatar")}
               </Button>
               <Button type="button" variant="outline" className="h-10 rounded-xl" onClick={() => setAvatar("")}>
-                Remove avatar
+                {t("dashboard.removeAvatar")}
               </Button>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>Name</Label>
+                <Label>{t("dashboard.name")}</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>Email</Label>
+                <Label>{t("dashboard.email")}</Label>
                 <Input value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>Phone</Label>
+                <Label>{t("dashboard.phone")}</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+996 …" />
               </div>
             </div>

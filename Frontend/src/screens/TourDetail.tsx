@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Share2, Heart, MapPin, Mountain, Tent, Utensils, Check, Star } from "lucide-react";
+import { Share2, Heart, MapPin, Mountain, Tent, Utensils, Check, Star, Copy, Link2, Send } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, format, parseISO } from "date-fns";
 import { enUS, ru } from "date-fns/locale";
@@ -18,8 +18,9 @@ import { useAppStore } from "@/store/app";
 import { toast } from "@/hooks/use-toast";
 import { MiniMap } from "@/components/maps/MiniMap";
 import { setCurrentTourContext } from "@/lib/aiContext";
-import { formatMoney } from "@/lib/currency";
+import { formatMoney, normalizeCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 const iconMap: Record<string, any> = { mountain: Mountain, tent: Tent, utensils: Utensils, horse: Mountain };
 
@@ -37,6 +38,7 @@ const TourDetail = () => {
   const user = useAppStore((s) => s.user);
   const openAuthModal = useAppStore((s) => s.openAuthModal);
   const currency = useAppStore((s) => s.currency);
+  const displayCurrency = normalizeCurrency(currency) || "";
   const { data: tour, isLoading } = useQuery({
     queryKey: ["tour", slug, currency],
     queryFn: async () => {
@@ -66,6 +68,8 @@ const TourDetail = () => {
   const [showMore, setShowMore] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [activePhoto, setActivePhoto] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const saved = useAppStore((s) => (tour ? s.saved.includes(tour.id) : false));
   const toggleSave = useAppStore((s) => s.toggleSave);
   const addBooking = useAppStore((s) => s.addBooking);
@@ -104,6 +108,57 @@ const TourDetail = () => {
   const eco = 25;
   const service = 0;
   const total = subtotal + eco + service;
+
+  const [shareUrl, setShareUrl] = useState("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setShareUrl(window.location.href);
+  }, []);
+
+  const openShare = async () => {
+    if (!tour) return;
+    const url = shareUrl || (typeof window !== "undefined" ? `${window.location.origin}/tour/${slug || ""}` : "");
+    const title = tour.title || "Tour";
+
+    try {
+      if (typeof navigator !== "undefined" && (navigator as any).share) {
+        await (navigator as any).share({ title, url });
+        return;
+      }
+    } catch {
+      // fall back to dialog
+    }
+
+    setCopied(false);
+    setShareOpen(true);
+  };
+
+  const copyShareUrl = async () => {
+    const url = shareUrl || (typeof window !== "undefined" ? `${window.location.origin}/tour/${slug || ""}` : "");
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      // Fallback for older browsers
+      try {
+        const el = document.createElement("textarea");
+        el.value = url;
+        el.style.position = "fixed";
+        el.style.opacity = "0";
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1400);
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   const book = async () => {
     if (!tour) return;
@@ -217,7 +272,10 @@ const TourDetail = () => {
           </div>
         </div>
         <div className="flex gap-3 text-sm">
-          <Button variant="ghost" className="rounded-full px-3 py-2"><Share2 className="h-4 w-4" />{t("tour.share")}</Button>
+          <Button variant="ghost" onClick={openShare} className="rounded-full px-3 py-2">
+            <Share2 className="h-4 w-4" />
+            {t("tour.share")}
+          </Button>
           <Button
             variant="ghost"
             onClick={() => {
@@ -231,16 +289,88 @@ const TourDetail = () => {
         </div>
       </div>
 
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Link2 className="h-4 w-4" />
+              Share link
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-3">
+            <div className="flex gap-2">
+              <Input readOnly value={shareUrl} />
+              <Button type="button" onClick={copyShareUrl} className="shrink-0">
+                <Copy className="mr-2 h-4 w-4" />
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(
+                    tour.title || ""
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  Telegram
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`${tour.title || ""}\n${shareUrl}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(tour.title || "Tour")}&body=${encodeURIComponent(shareUrl)}`}
+                >
+                  Email
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Facebook
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(
+                    tour.title || ""
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  X
+                </a>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Gallery */}
       <div className="mt-6 grid gap-3 overflow-hidden rounded-3xl md:grid-cols-3">
         <div className="relative md:col-span-2 md:row-span-2 aspect-[4/3] md:aspect-auto">
-          <img src={safePhoto(0)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <Image src={safePhoto(0)} alt="" fill sizes="(min-width: 768px) 66vw, 100vw" className="object-cover" />
         </div>
         <div className="aspect-[4/3] overflow-hidden bg-muted">
-          <img src={safePhoto(1)} alt="" className="h-full w-full object-cover" />
+          <Image src={safePhoto(1)} alt="" width={640} height={480} sizes="(min-width: 768px) 33vw, 100vw" className="h-full w-full object-cover" />
         </div>
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          <img src={safePhoto(2)} alt="" className="h-full w-full object-cover" />
+          <Image src={safePhoto(2)} alt="" width={640} height={480} sizes="(min-width: 768px) 33vw, 100vw" className="h-full w-full object-cover" />
           <Button
             type="button"
             variant="outline"
@@ -249,7 +379,7 @@ const TourDetail = () => {
               setActivePhoto(0);
               setGalleryOpen(true);
             }}
-            className="absolute bottom-3 right-3 rounded-xl bg-white/95 text-xs shadow-card hover:bg-white"
+            className="absolute bottom-3 right-3 rounded-xl bg-surface/95 text-xs shadow-card hover:bg-surface"
           >
             {t("tour.showAll")}
           </Button>
@@ -263,7 +393,7 @@ const TourDetail = () => {
           </DialogHeader>
           <div className="grid gap-4 p-4 md:grid-cols-[1fr_280px]">
             <div className="relative overflow-hidden rounded-2xl bg-muted">
-              <img src={safePhoto(activePhoto)} alt="" className="h-[60vh] w-full object-contain" />
+              <Image src={safePhoto(activePhoto)} alt="" fill sizes="(min-width: 768px) 720px, 100vw" className="object-contain" />
             </div>
             <div className="grid max-h-[60vh] grid-cols-2 gap-2 overflow-auto pr-1 md:grid-cols-1">
               {gallery.map((src, idx) => (
@@ -277,7 +407,7 @@ const TourDetail = () => {
                   )}
                   aria-label={`Photo ${idx + 1}`}
                 >
-                  <img src={src} alt="" className="h-24 w-full object-cover md:h-28" />
+                  <Image src={src} alt="" width={560} height={320} sizes="280px" className="h-24 w-full object-cover md:h-28" />
                 </button>
               ))}
             </div>
@@ -440,7 +570,7 @@ const TourDetail = () => {
           <div className="rounded-3xl bg-card p-6 shadow-elevated ring-1 ring-border">
             <div className="flex items-end justify-between">
               <div>
-                <span className="font-display text-3xl font-semibold">{formatMoney(tour.price, tour.currency)}</span>
+                <span className="font-display text-3xl font-semibold">{formatMoney(tour.price, displayCurrency || tour.currency)}</span>
                 <span className="text-sm text-muted-foreground"> / person</span>
               </div>
               <div className="text-right text-xs text-muted-foreground">
@@ -461,15 +591,15 @@ const TourDetail = () => {
 
             <div className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
               <Row
-                label={`${formatMoney(tour.price, tour.currency)} × ${guests} ${guests > 1 ? "people" : "person"}`}
-                value={formatMoney(subtotal, tour.currency)}
+                label={`${formatMoney(tour.price, displayCurrency || tour.currency)} × ${guests} ${guests > 1 ? "people" : "person"}`}
+                value={formatMoney(subtotal, displayCurrency || tour.currency)}
               />
-              <Row label={t("tour.ecoFee")} value={formatMoney(eco, tour.currency)} />
-              <Row label={t("tour.serviceFee")} value={formatMoney(service, tour.currency)} />
+              <Row label={t("tour.ecoFee")} value={formatMoney(eco, displayCurrency || tour.currency)} />
+              <Row label={t("tour.serviceFee")} value={formatMoney(service, displayCurrency || tour.currency)} />
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
               <span className="font-semibold">{t("tour.total")}</span>
-              <span className="font-display text-lg font-semibold">{formatMoney(total, tour.currency)}</span>
+              <span className="font-display text-lg font-semibold">{formatMoney(total, displayCurrency || tour.currency)}</span>
             </div>
             <div className="mt-4 rounded-xl bg-brand-soft px-3 py-2 text-center text-xs font-medium text-accent-foreground">
               {t("tour.freeCancellation", { date: "Aug 7th" })}

@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button";
 import { toursApi } from "@/lib/api";
 import { geocodePlace } from "@/lib/mapboxGeocoding";
 import { applyRussianLabels } from "@/lib/mapboxLabels";
-import { applyKyrgyzstanOnlyMap } from "@/lib/kyrgyzstanOnlyMap";
 import { formatMoney } from "@/lib/currency";
 import { useAppStore } from "@/store/app";
+import { useTranslation } from "react-i18next";
+import Image from "next/image";
 
 type TourCoord = { id: string; lng: number; lat: number };
 
@@ -34,16 +35,13 @@ const writeCache = (cache: Record<string, { lng: number; lat: number }>) => {
 };
 
 const MapPage = () => {
+  const { i18n } = useTranslation();
   const currency = useAppStore((s) => s.currency);
-  const [is3d, setIs3d] = useState(() => {
-    try {
-      return localStorage.getItem("map:3d") === "1";
-    } catch {
-      return false;
-    }
-  });
+  const currentLang = i18n.language;
+  // Keep initial render deterministic for SSR/CSR hydration.
+  const [is3d, setIs3d] = useState(false);
   const { data: tours = [] } = useQuery({
-    queryKey: ["tours", currency],
+    queryKey: ["tours", currency, currentLang],
     queryFn: () => toursApi.getTours(currency),
     // Ensure map sidebar reflects backend edits without needing a hard reload.
     refetchOnMount: "always",
@@ -223,7 +221,6 @@ const MapPage = () => {
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-left");
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
     map.on("style.load", () => {
-      void applyKyrgyzstanOnlyMap(map);
       applyRussianLabels(map);
       apply3d(map, is3d);
     });
@@ -238,6 +235,15 @@ const MapPage = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapboxToken]);
+
+  useEffect(() => {
+    // Read persisted preference after hydration.
+    try {
+      setIs3d(localStorage.getItem("map:3d") === "1");
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -275,7 +281,7 @@ const MapPage = () => {
       const el = document.createElement("button");
       el.type = "button";
       el.className =
-        "relative grid h-12 w-12 place-items-center rounded-full bg-white text-foreground shadow-elevated ring-4 ring-white/70 transition-transform hover:scale-105";
+        "relative grid h-12 w-12 place-items-center rounded-full bg-white text-black shadow-elevated ring-4 ring-white/70 transition-transform hover:scale-105";
       el.innerHTML = `
         <span style="position:absolute;inset:0;border-radius:9999px;box-shadow:0 0 0 0 rgba(34,197,94,0.40);animation:tw-pulse 2.4s ease-out infinite;"></span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -369,7 +375,7 @@ const MapPage = () => {
                       tour.id === selectedId ? "bg-muted/60" : ""
                     }`}
                   >
-                    <img src={tour.hero} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+                    <Image src={tour.hero} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-xl object-cover" />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold">{tour.title}</div>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">

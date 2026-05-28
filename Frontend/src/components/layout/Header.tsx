@@ -17,15 +17,18 @@ import {
 import { CURRENCIES, currencyForLang } from "@/lib/currencyPref";
 import { normalizeCurrency } from "@/lib/currency";
 import { useTheme } from "next-themes";
+import { useStaticT } from "@/i18n/useStaticT";
+import { normalizeSiteLang, SITE_LANG_KEY, toI18nLang, type SiteLang } from "@/i18n/siteLang";
 
-const langs = [
+const langs: { code: SiteLang; label: string }[] = [
   { code: "en", label: "ENG" },
   { code: "ru", label: "RUS" },
-  { code: "kg", label: "KGZ" },
+  { code: "ky", label: "KGZ" },
 ];
 
 export const Header = () => {
   const { t, i18n } = useTranslation();
+  const { header: st } = useStaticT();
   const pathname = usePathname();
   const user = useAppStore((s) => s.user);
   const signOut = useAppStore((s) => s.signOut);
@@ -35,6 +38,7 @@ export const Header = () => {
   const currencyMode = useAppStore((s) => s.currencyMode);
   const setCurrency = useAppStore((s) => s.setCurrency);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const currentLang = normalizeSiteLang(i18n.language);
 
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -47,21 +51,31 @@ export const Header = () => {
     { href: "/explore", label: t("nav.explore") },
     { href: "/map", label: t("nav.map") },
     { href: "/experiences", label: t("nav.experiences") },
+    { href: "/faq", label: t("nav.faq") },
     { href: "/dashboard", label: t("nav.dashboard") },
     { href: "/ai", label: t("nav.ai") },
   ];
 
-  const setLang = (code: string) => {
-    i18n.changeLanguage(code);
-    localStorage.setItem("lang", code);
-    document.cookie = `lang=${encodeURIComponent(code)}; path=/; max-age=31536000; samesite=lax`;
-    if (currencyMode === "auto") {
-      setCurrency(currencyForLang(code), "auto");
-    }
-  };
-  const currentLang = langs.find((l) => l.code === i18n.language) ?? langs[0];
+  const currentLangMeta = langs.find((l) => l.code === currentLang) ?? langs[0];
   const currentCurrency = normalizeCurrency(currency) || "KGS";
   const initials = (user?.name || user?.email || "U").trim().slice(0, 1).toUpperCase();
+
+  const setSiteLang = (lang: SiteLang) => {
+    const normalized = normalizeSiteLang(lang);
+    // Persist for backend (Accept-Language) and for future sessions.
+    try {
+      localStorage.setItem(SITE_LANG_KEY, normalized);
+      localStorage.setItem("lang", toI18nLang(normalized));
+    } catch {
+      // ignore
+    }
+    try {
+      document.cookie = `lang=${encodeURIComponent(normalized)}; path=/; max-age=31536000; samesite=lax`;
+    } catch {
+      // ignore
+    }
+    i18n.changeLanguage(toI18nLang(normalized));
+  };
 
   useEffect(() => {
     if (currencyMode !== "auto") return;
@@ -100,7 +114,7 @@ export const Header = () => {
             size="sm"
             className="h-9 w-9 rounded-xl p-0 transition-transform duration-200 hover:scale-[1.03]"
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            aria-label="Toggle theme"
+            aria-label={st.themeToggleAria}
           >
             {mounted && resolvedTheme === "dark" ? (
               <Sun className="h-4 w-4 text-amber-500" />
@@ -118,7 +132,7 @@ export const Header = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setCurrency(currencyForLang(i18n.language), "auto")}>
-                Auto ({currencyForLang(i18n.language)})
+                {st.currencyAuto} ({currencyForLang(i18n.language)})
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {CURRENCIES.map((c) => (
@@ -132,13 +146,13 @@ export const Header = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 px-2.5 text-xs font-medium sm:px-4 sm:text-sm">
-                {currentLang.label}
+                {currentLangMeta.label}
                 <ChevronDown className="ml-1 h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {langs.map((l) => (
-                <DropdownMenuItem key={l.code} onClick={() => setLang(l.code)}>
+                <DropdownMenuItem key={l.code} onClick={() => setSiteLang(l.code)}>
                   {l.label}
                 </DropdownMenuItem>
               ))}
@@ -191,12 +205,12 @@ export const Header = () => {
                     avatarInputRef.current?.click();
                   }}
                 >
-                  Change avatar…
+                  {st.changeAvatar}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setAvatar("")}>Remove avatar</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAvatar("")}>{st.removeAvatar}</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild><Link href="/dashboard">{t("nav.dashboard")}</Link></DropdownMenuItem>
-                <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut}>{st.signOut}</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild className="md:hidden"><Link href="/explore">{t("nav.explore")}</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild className="md:hidden"><Link href="/map">{t("nav.map")}</Link></DropdownMenuItem>

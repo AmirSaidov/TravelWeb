@@ -45,8 +45,9 @@ const typeMeta: Record<TourType, { iconSrc: string; labelKey: string }> = {
 };
 
 const Explore = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const currency = useAppStore((s) => s.currency);
+  const currentLang = i18n.language;
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useMemo(() => new URLSearchParams(searchParams.toString()), [searchParams]);
@@ -79,7 +80,7 @@ const Explore = () => {
   const currencyLabel = String(currency || "").toUpperCase();
 
   const { data: tours = [], isLoading, isError } = useQuery({
-    queryKey: ["tours", currency],
+    queryKey: ["tours", currency, currentLang],
     queryFn: () => toursApi.getTours(currency),
   });
 

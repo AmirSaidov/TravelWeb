@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api/client";
 import { getPageContext, initPageActionTracking } from "@/lib/aiContext";
+import { getNumberLocale } from "@/lib/currency";
 
 interface DayBlock { day: number; title: string; tag: "Culture" | "Nature" | "Adventure"; text: string; img: string; }
 interface Msg { id: string; role: "user" | "assistant"; text?: string; timeline?: DayBlock[]; pricePerPerson?: number; ts: number; }
@@ -235,7 +236,7 @@ const BudgetDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
         </div>
         <div className="mt-2 flex items-center justify-between rounded-2xl bg-primary px-5 py-4 text-primary-foreground">
           <span className="text-sm font-medium opacity-80">Estimated total</span>
-          <span className="font-display text-2xl font-semibold">${total.toLocaleString()}</span>
+          <span className="font-display text-2xl font-semibold">${total.toLocaleString(getNumberLocale())}</span>
         </div>
         <p className="text-xs text-muted-foreground">Includes accommodation, meals and guide. Add visa & flights separately.</p>
       </DialogContent>

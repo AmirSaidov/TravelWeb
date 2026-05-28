@@ -30,7 +30,7 @@ const slugify = (s: string) =>
     .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/(^-|-$)/g, "");
 
-const mapApiTour = (t: ApiTour): Tour => {
+const mapApiTour = (t: ApiTour, fallbackCurrency?: string | null): Tour => {
   const price = Number(t.price);
   const rating = Number(t.rating_avg ?? 0);
   const reviewCount = Number(t.review_count ?? 0);
@@ -44,6 +44,9 @@ const mapApiTour = (t: ApiTour): Tour => {
   const image = t.image || "";
   const idStr = String(t.id);
   const titleSlug = slugify(t.title) || idStr;
+  // UI should always reflect the currency the user selected/requested.
+  // Some backends may return a stale/empty currency field even when values are converted.
+  const resolvedCurrency = normalizeCurrency(fallbackCurrency) || normalizeCurrency(t.currency);
   return {
     id: idStr,
     // Include numeric id to make tour links stable even if the backend list is paginated.
@@ -56,7 +59,7 @@ const mapApiTour = (t: ApiTour): Tour => {
     description: t.description,
     longDescription: t.description,
     price: Number.isFinite(price) ? price : 0,
-    currency: normalizeCurrency(t.currency),
+    currency: resolvedCurrency,
     duration: `${t.duration} days`,
     durationDays: t.duration,
     rating: Number.isFinite(rating) ? rating : 0,
@@ -102,11 +105,12 @@ export const toursApi = {
   async getTours(currency?: string) {
     const cur = normalizeCurrency(currency) || getPreferredCurrency();
     const { data } = await api.get<ApiTour[]>("/tours/", { params: { currency: cur } });
-    return data.map(mapApiTour);
+    return data.map((t) => mapApiTour(t, cur));
   },
-  async getTourById(id: string | number) {
-    const { data } = await api.get<ApiTour>(`/tours/${id}/`);
-    return mapApiTour(data);
+  async getTourById(id: string | number, currency?: string) {
+    const cur = normalizeCurrency(currency) || getPreferredCurrency();
+    const { data } = await api.get<ApiTour>(`/tours/${id}/`, { params: { currency: cur } });
+    return mapApiTour(data, cur);
   },
   async getTourBySlug(slug: string, currency?: string) {
     const raw = String(slug || "").trim();
@@ -116,7 +120,7 @@ export const toursApi = {
     const idPart = raw.match(/^(\d+)(?:-|$)/)?.[1];
     if (idPart) {
       try {
-        return await this.getTourById(idPart);
+        return await this.getTourById(idPart, currency);
       } catch {
         // fallback below
       }

@@ -18,11 +18,25 @@ export function normalizeCurrency(raw?: string | null): string {
   return up;
 }
 
+export function getNumberLocale(): string {
+  if (typeof document === "undefined") return "en-US";
+  try {
+    const parts = document.cookie.split(";").map((p) => p.trim());
+    const raw = parts.find((p) => p.startsWith("lang="))?.slice("lang=".length) ?? "";
+    const lang = decodeURIComponent(raw || "").toLowerCase();
+    if (lang.startsWith("ru")) return "ru-RU";
+    if (lang.startsWith("ky") || lang.startsWith("kg")) return "ky-KG";
+    return "en-US";
+  } catch {
+    return "en-US";
+  }
+}
+
 export function formatMoney(amount: number, currency?: string | null): string {
   const cur = normalizeCurrency(currency);
   const safe = Number.isFinite(amount) ? amount : 0;
   const rounded = Math.round(safe * 100) / 100;
-  const number = rounded.toLocaleString(undefined, {
+  const number = rounded.toLocaleString(getNumberLocale(), {
     maximumFractionDigits: rounded % 1 === 0 ? 0 : 2,
   });
 
@@ -32,4 +46,3 @@ export function formatMoney(amount: number, currency?: string | null): string {
   const suffix = SYMBOL_SUFFIX[cur] ?? ` ${cur}`;
   return `${number}${suffix}`;
 }
-

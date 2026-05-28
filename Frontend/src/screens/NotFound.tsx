@@ -35,7 +35,7 @@ const NotFound = () => {
       {/* Content */}
       <div className="relative z-10 flex min-h-[calc(100vh-64px)] items-end justify-center px-6 pb-12 pt-10 text-white sm:px-10 sm:pb-16">
         <div className="flex w-full max-w-3xl flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <Button asChild className="h-11 rounded-full bg-white/95 px-6 font-semibold text-foreground hover:bg-white">
+          <Button asChild className="h-11 rounded-full bg-white/95 px-6 font-semibold text-black hover:bg-white">
             <Link href="/">
               <Home className="mr-2 h-4 w-4" />
               {t("notFound.backHome")}

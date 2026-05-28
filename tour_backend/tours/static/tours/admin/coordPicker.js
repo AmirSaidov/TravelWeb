@@ -18,6 +18,7 @@
 
     var latInput = document.getElementById("id_lat");
     var lngInput = document.getElementById("id_lng");
+    var locationInput = document.getElementById("id_location");
     var mapEl = document.getElementById("coord-picker");
     var searchInput = document.getElementById("coord-search");
     var inlineResultsEl = document.getElementById("coord-search-results");
@@ -104,18 +105,24 @@
       el.innerHTML = "";
     }
 
-    function showResults(items) {
+    var lastAnchorInput = null;
+    function positionDropdown(el, anchor) {
+      if (!el || !anchor) return;
+      var r = anchor.getBoundingClientRect();
+      el.style.left = Math.round(r.left + window.scrollX) + "px";
+      el.style.top = Math.round(r.bottom + window.scrollY + 6) + "px";
+      el.style.width = Math.round(r.width) + "px";
+    }
+
+    function showResults(items, anchorInput) {
       var el = ensureDropdown();
       if (!items || items.length === 0) return hideResults();
       el.innerHTML = "";
 
       // Position dropdown under input.
-      if (searchInput) {
-        var r = searchInput.getBoundingClientRect();
-        el.style.left = Math.round(r.left + window.scrollX) + "px";
-        el.style.top = Math.round(r.bottom + window.scrollY + 6) + "px";
-        el.style.width = Math.round(r.width) + "px";
-      }
+      var anchor = anchorInput || searchInput || locationInput;
+      lastAnchorInput = anchor;
+      positionDropdown(el, anchor);
 
       items.forEach(function (it) {
         var btn = document.createElement("button");
@@ -129,6 +136,10 @@
           "</div>";
         btn.addEventListener("click", function () {
           hideResults();
+          if (locationInput) {
+            locationInput.value = it.name || "";
+            locationInput.dispatchEvent(new Event("change", { bubbles: true }));
+          }
           if (searchInput) searchInput.value = it.name || "";
           setMarker(it.lat, it.lng, true);
           setInputs(it.lat, it.lng);
@@ -154,10 +165,10 @@
       return Array.isArray(data) ? data : [];
     }
 
-    function onSearchInput() {
-      if (!searchInput) return;
-      var q = String(searchInput.value || "").trim();
-      if (q.length < 3) return hideResults();
+    function onSearchInput(inputEl) {
+      if (!inputEl) return;
+      var q = String(inputEl.value || "").trim();
+      if (q.length < 2) return hideResults();
       lastQuery = q;
 
       if (debounceTimer) clearTimeout(debounceTimer);
@@ -166,22 +177,31 @@
           var items = await searchPlaces(q);
           // Ignore if user typed something else.
           if (lastQuery !== q) return;
-          showResults(items);
+          showResults(items, inputEl);
         } catch {
           hideResults();
         }
       }, 350);
     }
 
-    if (searchInput) {
-      searchInput.addEventListener("input", onSearchInput);
-      searchInput.addEventListener("blur", function () {
+    function bindSearchField(inputEl) {
+      if (!inputEl) return;
+      inputEl.addEventListener("input", function () { onSearchInput(inputEl); });
+      inputEl.addEventListener("blur", function () {
         // Delay to allow click on a result.
         setTimeout(hideResults, 200);
       });
-      searchInput.addEventListener("focus", function () {
-        if (dropdownEl && dropdownEl.innerHTML) dropdownEl.style.display = "block";
+      inputEl.addEventListener("focus", function () {
+        if (dropdownEl && dropdownEl.innerHTML) {
+          // Reposition under the focused input.
+          if (lastAnchorInput !== inputEl) positionDropdown(dropdownEl, inputEl);
+          dropdownEl.style.display = "block";
+        }
       });
     }
+
+    // Support both the dedicated coord-search input (under Lat help text) and the main Location field.
+    bindSearchField(searchInput);
+    bindSearchField(locationInput);
   });
 })();

@@ -8,6 +8,29 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { useEffect, useState } from "react";
 import { initI18n } from "@/i18n";
 import { ThemeProvider, useTheme } from "next-themes";
+import { normalizeSiteLang, SITE_LANG_KEY } from "@/i18n/siteLang";
+import { useAppStore } from "@/store/app";
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const needle = `${encodeURIComponent(name)}=`;
+  const parts = document.cookie.split(";").map((p) => p.trim());
+  for (const part of parts) {
+    if (!part.startsWith(needle)) continue;
+    const raw = part.slice(needle.length);
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  }
+  return null;
+}
+
+// Client-side init before the first render to avoid hydration mismatches.
+if (typeof window !== "undefined") {
+  initI18n(readCookie("lang"));
+}
 
 function AntdConfigProvider({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
@@ -32,17 +55,41 @@ function AntdConfigProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children, initialLang }: { children: React.ReactNode; initialLang?: string }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60_000,
+            gcTime: 5 * 60_000,
+            refetchOnWindowFocus: false,
+            retry: 1,
+          },
+        },
+      })
+  );
 
-  // Ensure the very first render (both SSR and CSR) uses the same language.
-  initI18n(initialLang);
+  // Initialize i18n on the server render (so SSR HTML uses correct language),
+  // but avoid doing it during client render to prevent "setState while rendering" warnings from react-i18next.
+  if (typeof window === "undefined") {
+    initI18n(initialLang);
+  }
 
   useEffect(() => {
-    const stored = localStorage.getItem("lang")?.trim();
+    // Keep i18n in sync if SSR cookie language changes between navigations.
+    initI18n(initialLang);
+  }, [initialLang]);
+
+  useEffect(() => {
+    // Rehydrate persisted app state only after mount to keep the first client render
+    // identical to the server render and avoid React hydration errors.
+    useAppStore.persist.rehydrate();
+
+    const stored = localStorage.getItem(SITE_LANG_KEY)?.trim() || localStorage.getItem("lang")?.trim() || "";
     if (!stored) return;
 
-    document.cookie = `lang=${encodeURIComponent(stored)}; path=/; max-age=31536000; samesite=lax`;
-    initI18n(stored);
+    const siteLang = normalizeSiteLang(stored);
+    initI18n(siteLang);
   }, []);
 
   return (

@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { ChevronRight, Search, Star } from "lucide-react";
 import { addDays, format, nextFriday } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 
 import { useQuery } from "@tanstack/react-query";
 import { toursApi } from "@/lib/api";
@@ -14,10 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAppStore } from "@/store/app";
+import { formatMoney } from "@/lib/currency";
 
 const Home = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
+  const currentLang = i18n.language;
+  const currency = useAppStore((s) => s.currency);
 
   const [activeSearchTab, setActiveSearchTab] = useState<"where" | "when" | "who" | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
@@ -31,11 +36,14 @@ const Home = () => {
   const unsplashSrcSet = (photoId: string) =>
     [640, 960, 1280, 1600, 2000].map((w) => `${unsplash(photoId, w)} ${w}w`).join(", ");
 
-  const heroImages = [
-    { id: "photo-1506905925346-21bda4d32df4", alt: "" },
-    { id: "photo-1482192505345-5655af888cc4", alt: "" },
-    { id: "photo-1443890923422-7819ed4101c0", alt: "" },
-  ];
+  const heroImages = useMemo(
+    () => [
+      { id: "photo-1506905925346-21bda4d32df4", alt: "" },
+      { id: "photo-1482192505345-5655af888cc4", alt: "" },
+      { id: "photo-1443890923422-7819ed4101c0", alt: "" },
+    ],
+    []
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -45,18 +53,29 @@ const Home = () => {
     return () => window.clearInterval(timer);
   }, [heroImages.length]);
 
-  const recommendedPlaces = [
-    { city: "Issyk-Kul, Karakol", sub: "Ski base & trekking", iconSrc: "/icons/rec-karakol.png", scale: 2.2 },
-    { city: "Naryn, Song-Kul", sub: "High-altitude lake & yurts", iconSrc: "/icons/rec-sonkol.png", scale: 2.2 },
-    { city: "Chui, Ala-Archa", sub: "National park near Bishkek", iconSrc: "/icons/rec-alaarcha.png", scale: 1.8 },
-    { city: "Jalal-Abad, Arslanbob", sub: "Walnut forests & waterfalls", iconSrc: "/icons/rec-arslanbob.png", scale: 1.8 },
-    { city: "Osh, Osh", sub: "Sulaiman-Too & bazaar vibe", iconSrc: "/icons/rec-osh.png", scale: 1.8 },
-    { city: "Naryn, Kol-Suu", sub: "Turquoise lake in cliffs", iconSrc: "/icons/rec-kolsuu.png", scale: 1.8 },
-  ];
+  useEffect(() => {
+    // Preload the next hero image to avoid janky transitions.
+    const next = heroImages[(heroIndex + 1) % heroImages.length];
+    const img = new window.Image();
+    img.decoding = "async";
+    img.src = unsplash(next.id, 2000);
+  }, [heroImages, heroIndex]);
+
+  const recommendedPlaces = useMemo(
+    () => [
+      { city: "Issyk-Kul, Karakol", sub: "Ski base & trekking", iconSrc: "/icons/rec-karakol.png", scale: 2.2 },
+      { city: "Naryn, Song-Kul", sub: "High-altitude lake & yurts", iconSrc: "/icons/rec-sonkol.png", scale: 2.2 },
+      { city: "Chui, Ala-Archa", sub: "National park near Bishkek", iconSrc: "/icons/rec-alaarcha.png", scale: 1.8 },
+      { city: "Jalal-Abad, Arslanbob", sub: "Walnut forests & waterfalls", iconSrc: "/icons/rec-arslanbob.png", scale: 1.8 },
+      { city: "Osh, Osh", sub: "Sulaiman-Too & bazaar vibe", iconSrc: "/icons/rec-osh.png", scale: 1.8 },
+      { city: "Naryn, Kol-Suu", sub: "Turquoise lake in cliffs", iconSrc: "/icons/rec-kolsuu.png", scale: 1.8 },
+    ],
+    []
+  );
 
   const { data: tours = [], isLoading: toursLoading } = useQuery({
-    queryKey: ["tours"],
-    queryFn: () => toursApi.getTours(),
+    queryKey: ["tours", currency, currentLang],
+    queryFn: () => toursApi.getTours(currency),
   });
 
   const peopleTotal = guests.adults + guests.children;
@@ -93,21 +112,24 @@ const Home = () => {
       <section className="relative h-[380px] overflow-hidden">
         <div className="absolute inset-0 overflow-hidden bg-black">
           <AnimatePresence mode="sync" initial={false}>
-            <motion.img
+            <motion.div
               key={heroImages[heroIndex].id}
-              src={unsplash(heroImages[heroIndex].id, 1600)}
-              srcSet={unsplashSrcSet(heroImages[heroIndex].id)}
-              sizes="100vw"
-              alt={heroImages[heroIndex].alt}
-              decoding="async"
-              loading={heroIndex === 0 ? "eager" : "lazy"}
-              fetchPriority={heroIndex === 0 ? "high" : "low"}
-              className="absolute inset-0 h-full w-full object-cover"
-              initial={{ x: "100%" }}
-              animate={{ x: "0%" }}
-              exit={{ x: "-100%" }}
-              transition={{ duration: 0.9, ease: [0.32, 0.72, 0, 1] }}
-            />
+              className="absolute inset-0"
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              transition={{ duration: 1.05, ease: [0.22, 0.72, 0, 1] }}
+            >
+              <Image
+                src={unsplash(heroImages[heroIndex].id, 2000)}
+                alt={heroImages[heroIndex].alt}
+                fill
+                sizes="100vw"
+                priority={heroIndex === 0}
+                quality={70}
+                className="select-none object-cover"
+              />
+            </motion.div>
           </AnimatePresence>
           <div className="absolute inset-0 bg-black/10" />
           <div className="absolute inset-0 gradient-hero-overlay" />
@@ -120,16 +142,16 @@ const Home = () => {
               <div className="fixed inset-0 z-20" onClick={() => setActiveSearchTab(null)} />
             )}
 
-            <div className="relative z-30 flex flex-col gap-2 overflow-visible rounded-3xl bg-white p-2 text-foreground shadow-elevated ring-1 ring-black/10 md:flex-row md:items-center md:gap-0 md:divide-x md:divide-border/80 md:overflow-hidden md:rounded-[999px]">
+            <div className="relative z-30 flex flex-col gap-2 overflow-visible rounded-3xl bg-surface p-2 text-foreground shadow-elevated ring-1 ring-border/60 md:flex-row md:items-center md:gap-0 md:divide-x md:divide-border/80 md:overflow-hidden md:rounded-[999px]">
               {/* WHERE */}
               <Popover open={activeSearchTab === "where"} onOpenChange={(open) => setActiveSearchTab(open ? "where" : null)}>
                 <div className="relative z-10 flex w-full md:w-auto md:flex-[1.5]">
                   <PopoverTrigger asChild>
-                    <button className="group relative w-full cursor-pointer mr-4 rounded-full px-6 py-3 text-left transition-all hover:bg-black/5 sm:px-8">
+                    <button className="group relative w-full cursor-pointer mr-4 rounded-full px-6 py-3 text-left transition-all hover:bg-muted/40 sm:px-8">
                       {activeSearchTab === "where" && (
                         <motion.div
                           layoutId="active-search-tab"
-                          className="absolute inset-0 rounded-full bg-black/5 shadow-sm"
+                          className="absolute inset-0 rounded-full bg-muted/60 shadow-sm"
                           initial={false}
                           transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         />
@@ -164,9 +186,11 @@ const Home = () => {
                               setActiveSearchTab(null);
                             }}
                           >
-                            <img
+                            <Image
                               src={item.iconSrc}
                               alt=""
+                              width={48}
+                              height={48}
                               className="h-12 w-12 shrink-0 object-contain transition-transform duration-300 group-hover:scale-110"
                               style={{ transform: `scale(${item.scale})` }}
                             />
@@ -265,8 +289,8 @@ const Home = () => {
                           head_cell: "w-10 text-[0.85rem]",
                           cell: "h-10 w-10 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-xl [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-xl last:[&:has([aria-selected])]:rounded-r-xl focus-within:relative focus-within:z-20",
                           day: "h-10 w-10 rounded-xl p-0 text-sm font-medium aria-selected:opacity-100",
-                          day_selected: "bg-black text-white hover:bg-black hover:text-white focus:bg-black focus:text-white",
-                          day_range_middle: "aria-selected:bg-gray-100 aria-selected:text-black",
+                          day_selected: "bg-foreground text-background hover:bg-foreground hover:text-background focus:bg-foreground focus:text-background",
+                          day_range_middle: "aria-selected:bg-muted aria-selected:text-foreground",
                         }}
                         components={{
                           IconLeft: () => <span className="inline-flex h-5 w-5 items-center justify-center">‹</span>,
@@ -460,7 +484,7 @@ const Home = () => {
                     rel="noopener noreferrer"
                     className="group relative aspect-[16/9] overflow-hidden rounded-2xl shadow-elevated ring-1 ring-black/10 md:aspect-auto md:h-full"
                   >
-                    <img src={p.hero} alt={p.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <Image src={p.hero} alt={p.title} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover transition-transform duration-700 group-hover:scale-110" />
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_40%,rgba(0,0,0,0.6)_100%)]" />
                     <div className="absolute inset-x-0 bottom-0 p-6 text-left text-white">
                       <div className="font-display text-xl font-semibold">{p.title}</div>
@@ -497,7 +521,7 @@ const Home = () => {
             : curated.map((tr) => (
                 <Link key={tr.id} href={`/tour/${tr.slug}`} target="_blank" rel="noopener noreferrer" className="group block">
                   <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-card ring-1 ring-black/10">
-                    <img src={tr.hero} alt={tr.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <Image src={tr.hero} alt={tr.title} width={800} height={600} sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -510,7 +534,7 @@ const Home = () => {
                     </div>
                   </div>
                   <div className="mt-2 text-sm font-semibold text-foreground">
-                    ${tr.price} <span className="text-xs font-normal text-muted-foreground">/ person</span>
+                    {formatMoney(tr.price, tr.currency)} <span className="text-xs font-normal text-muted-foreground">/ person</span>
                   </div>
                 </Link>
               ))}
@@ -520,14 +544,13 @@ const Home = () => {
       {/* CTA */}
       <section className="container-page pb-24 pt-6">
           <div className="relative overflow-hidden rounded-[2rem] bg-black p-10 shadow-elevated ring-1 ring-black/10 sm:p-14">
-            <img
+            <Image
               alt="Share your Kyrgyzstan"
-              src={unsplash("photo-1482192505345-5655af888cc4", 1600)}
-              srcSet={unsplashSrcSet("photo-1482192505345-5655af888cc4")}
+              src={unsplash("photo-1482192505345-5655af888cc4", 2000)}
+              fill
               sizes="(max-width: 768px) 100vw, 1200px"
-              loading="lazy"
-              decoding="async"
-              className="absolute inset-0 h-full w-full object-cover opacity-90"
+              quality={70}
+              className="object-cover opacity-90"
             />
           <div className="absolute inset-0 bg-black/45" />
           <div className="relative z-10 max-w-md text-white">

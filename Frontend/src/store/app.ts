@@ -72,6 +72,12 @@ export const useAppStore = create<AppState>()(
       setCurrency: (currency, mode = "manual") =>
         set({ currency: String(currency || "").toUpperCase(), currencyMode: mode }),
     }),
-    { name: "kg-travel-store" }
+    {
+      name: "kg-travel-store",
+      // Next.js SSR hydration safety:
+      // don't pull localStorage into the very first client render, otherwise
+      // server HTML (guest state) may not match client HTML (rehydrated user/currency).
+      skipHydration: true,
+    }
   )
 );

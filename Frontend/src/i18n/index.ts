@@ -1,11 +1,23 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import { api } from "@/lib/api/client";
 
 const resources = {
   en: {
     translation: {
-      nav: { explore: "Explore", map: "Map", experiences: "Experiences", dashboard: "Dashboard", ai: "AI Assistant", login: "Sign in", signup: "Sign up" },
+      nav: { explore: "Explore", map: "Map", experiences: "Experiences", faq: "FAQ", dashboard: "Dashboard", ai: "AI Assistant", login: "Sign in", signup: "Sign up" },
+      experiences: {
+        curated: "Curated",
+        title: "Experiences across Kyrgyzstan",
+        subtitle: "Pick your kind of adventure — every tour is hand-vetted by our team of local guides.",
+        viewAll: "View all",
+        groups: {
+          horseback: { title: "Horseback adventures", subtitle: "Multi-day rides across alpine pastures" },
+          trekking: { title: "Trekking & hiking", subtitle: "From day-walks to high-altitude expeditions" },
+          cultural: { title: "Cultural immersion", subtitle: "Live with families, learn ancient crafts" },
+          yurts: { title: "Yurt stays", subtitle: "Sleep where the nomads sleep" },
+          "off-road": { title: "Off-road & extreme", subtitle: "4x4, MTB and remote canyons" },
+        },
+      },
       notFound: {
         title: "Route not found",
         subtitle: "Looks like this trail no longer leads to the page you wanted.",
@@ -17,7 +29,7 @@ const resources = {
       },
       hero: {
         pill: "AI-Powered Travel Guide",
-        title: "Kyrgyzstan — where mountains touch the sky",
+        title: "Kyrgyzstan â where mountains touch the sky",
         subtitle: "Discover the heart of Central Asia. Unspoiled nature, nomadic culture, and epic adventures await.",
       },
       search: {
@@ -42,14 +54,14 @@ const resources = {
         preset7: "7 days",
         preset14: "14 days",
         preset30: "30 days",
-        presetWeekendSub: "Fri → Sun",
+        presetWeekendSub: "Fri â Sun",
         preset7Sub: "A full week",
         preset14Sub: "Two weeks",
         preset30Sub: "A month",
         adults: "Adults",
         adultsSub: "Ages 13+",
         children: "Children",
-        childrenSub: "Ages 2–12",
+        childrenSub: "Ages 2â12",
         infants: "Infants",
         infantsSub: "Under 2",
         pets: "Pets",
@@ -71,9 +83,35 @@ const resources = {
         viewAll: "View all",
       },
       footer: { rights: "All rights reserved.", privacy: "Privacy", terms: "Terms", sitemap: "Sitemap", destinations: "Destinations", info: "Information", newsletter: "Newsletter", newsletterSub: "Get travel inspiration and secret deals.", emailP: "Email address", join: "Join", travelVisa: "Travel Visa", bestTime: "Best Time to Visit", etiquette: "Cultural Etiquette", safety: "Safety Tips", about: "We empower travelers to experience the raw beauty of Kyrgyzstan while supporting local nomadic communities and preserving nature." },
-      explore: { title: "Tours in Kyrgyzstan", count: "Discover {{n}} curated adventures across the Tian Shan", searchP: "Search tours or locations…", sort: "Sort: Popular", priceRange: "Price range", duration: "Duration", difficulty: "Difficulty", tourType: "Tour type", filters: "Filters", applyFilters: "Apply filters", noResults: "No tours match your filters.", easy: "Easy", moderate: "Moderate", challenging: "Challenging", sustainable: "Sustainable Travel", sustainableText: "Book any eco-tour this month and we'll plant 10 trees in the Ala-Archa valley.", learnMore: "Learn more" },
+      explore: { title: "Tours in Kyrgyzstan", count: "Discover {{n}} curated adventures across the Tian Shan", searchP: "Search tours or locationsâ¦", sort: "Sort: Popular", priceRange: "Price range", duration: "Duration", difficulty: "Difficulty", tourType: "Tour type", filters: "Filters", applyFilters: "Apply filters", noResults: "No tours match your filters.", easy: "Easy", moderate: "Moderate", challenging: "Challenging", sustainable: "Sustainable Travel", sustainableText: "Book any eco-tour this month and we'll plant 10 trees in the Ala-Archa valley.", learnMore: "Learn more" },
+      faq: {
+        title: "FAQ",
+        subtitle: "Quick answers about language, pricing, bookings, and payments.",
+        searchP: "Search questions…",
+        noResults: "No results. Try a different query.",
+        language: {
+          q: "How does language switching work?",
+          a: "Interface text is translated on the frontend, while tours and other dynamic content are localized by the backend based on the selected language.",
+        },
+        currency: {
+          q: "Why do prices change when I switch currency?",
+          a: "Prices are requested from the backend in your selected currency and displayed accordingly.",
+        },
+        booking: {
+          q: "How do I book a tour?",
+          a: "Open a tour, choose dates and guests, then press “Book Now”. You may need to sign in first.",
+        },
+        payment: {
+          q: "What payment methods are supported?",
+          a: "Payment options depend on the provider configured on the backend. You’ll see available methods during checkout.",
+        },
+        cancellation: {
+          q: "Can I cancel a booking?",
+          a: "Yes, cancellation rules depend on the tour. Check the policy on the tour page before booking.",
+        },
+      },
       tour: { whereYoullBe: "Where you'll be", reviews: "reviews", showAll: "Show all photos", share: "Share", save: "Save", hostedBy: "Hosted by", about: "About this experience", showMore: "Show more", included: "What's included", bookNow: "Book Now", notCharged: "You won't be charged yet", startDate: "START DATE", endDate: "END DATE", guestsLabel: "GUESTS", adults: "{{n}} adults", ecoFee: "Eco-sustainability fee", serviceFee: "Service fee", total: "Total", freeCancellation: "Free cancellation before {{date}}" },
-      ai: { title: "Kyrgyz Travel AI", status: "EXPERT GUIDE ONLINE", placeholder: "Ask anything about your trip…", suggestPack: "What should I pack?", suggestHotel: "Find hotels in Karakol", suggestWeather: "Weather forecast", proposed: "PROPOSED TIMELINE", day: "DAY", disclaimer: "AI can make mistakes. Verify important information like visas and safety.", error: "AI assistant is temporarily unavailable. Please try again in a moment." },
+      ai: { title: "Kyrgyz Travel AI", status: "EXPERT GUIDE ONLINE", placeholder: "Ask anything about your tripâ¦", suggestPack: "What should I pack?", suggestHotel: "Find hotels in Karakol", suggestWeather: "Weather forecast", proposed: "PROPOSED TIMELINE", day: "DAY", disclaimer: "AI can make mistakes. Verify important information like visas and safety.", error: "AI assistant is temporarily unavailable. Please try again in a moment." },
       auth: { modalTitle: "Sign in or register", signin: "Sign in", signup: "Create account", email: "Email", phone: "Phone", password: "Password", forgot: "Forgot password?", noAccount: "Don't have an account?", haveAccount: "Already have an account?", continueGoogle: "Continue with Google", or: "or", reset: "Reset password", resetSub: "We'll email you a reset link.", sendLink: "Send reset link" },
       route: {
         title: "Route to",
@@ -87,8 +125,8 @@ const resources = {
         minutesShort: "min",
         kmShort: "km",
         tokenMissing: "Mapbox token missing. Add `NEXT_PUBLIC_MAPBOX_TOKEN` to `.env.local`.",
-        findingDestination: "Finding destination…",
-        buildingRoute: "Building route…",
+        findingDestination: "Finding destinationâ¦",
+        buildingRoute: "Building routeâ¦",
         buildFailed: "Could not build route. Try again or set start point manually.",
       },
       dashboard: {
@@ -100,7 +138,7 @@ const resources = {
         welcomeBackShort: "Welcome back",
         manageText: "Manage your upcoming adventures and saved destinations.",
         upcomingTrips: "Upcoming Trips",
-        loadingBookings: "Loading bookings…",
+        loadingBookings: "Loading bookingsâ¦",
         pastBookings: "View {{n}} past bookings",
         guests: "{{n}} Guests",
         statusConfirmed: "CONFIRMED",
@@ -121,6 +159,11 @@ const resources = {
         cancelError: "Cancel error",
         bookingCancelled: "Booking cancelled",
         cancelFailed: "Failed to cancel booking.",
+        changeAvatar: "Change avatar…",
+        removeAvatar: "Remove avatar",
+        name: "Name",
+        email: "Email",
+        phone: "Phone",
       },
     },
   },
@@ -135,7 +178,20 @@ const resources = {
         aiText: "Подскажу маршрут, список вещей, отели и советы за секунды.",
         askAi: "Спросить AI",
       },
-      nav: { explore: "Туры", map: "Карта", experiences: "Опыт", dashboard: "Кабинет", ai: "AI ассистент", login: "Войти", signup: "Регистрация" },
+      nav: { explore: "Туры", map: "Карта", experiences: "Опыт", faq: "FAQ", dashboard: "Кабинет", ai: "AI ассистент", login: "Войти", signup: "Регистрация" },
+      experiences: {
+        curated: "Подборка",
+        title: "Впечатления по Кыргызстану",
+        subtitle: "Выберите формат приключения — каждый тур отобран и проверен нашей командой местных гидов.",
+        viewAll: "Смотреть все",
+        groups: {
+          horseback: { title: "Конные туры", subtitle: "Многодневные поездки по альпийским пастбищам" },
+          trekking: { title: "Трекинг и хайкинг", subtitle: "От прогулок на день до высокогорных экспедиций" },
+          cultural: { title: "Культурное погружение", subtitle: "Жизнь в семьях, ремёсла и традиции" },
+          yurts: { title: "Юрты", subtitle: "Ночёвки там, где живут кочевники" },
+          "off-road": { title: "Оффроад и экстрим", subtitle: "4x4, MTB и удалённые каньоны" },
+        },
+      },
       hero: {
         pill: "AI-помощник путешественника",
         title: "Кыргызстан — где горы касаются неба",
@@ -193,9 +249,51 @@ const resources = {
       },
       footer: { rights: "Все права защищены.", privacy: "Политика", terms: "Условия", sitemap: "Карта сайта", destinations: "Направления", info: "Информация", newsletter: "Рассылка", newsletterSub: "Вдохновение и скидки на ваш email.", emailP: "Email", join: "Подписаться", travelVisa: "Визы", bestTime: "Когда ехать", etiquette: "Этикет", safety: "Безопасность", about: "Помогаем путешественникам открыть Кыргызстан и поддерживать местные сообщества." },
       explore: { title: "Туры по Кыргызстану", count: "{{n}} тщательно отобранных приключений по Тянь-Шаню", searchP: "Поиск туров или мест…", sort: "Сорт.: Популярные", priceRange: "Цена", duration: "Длительность", difficulty: "Сложность", tourType: "Тип тура", filters: "Фильтры", applyFilters: "Применить", noResults: "Нет туров по выбранным фильтрам.", easy: "Лёгкий", moderate: "Средний", challenging: "Сложный", sustainable: "Эко-путешествия", sustainableText: "Бронируя эко-тур в этом месяце, вы сажаете 10 деревьев в Ала-Арче.", learnMore: "Подробнее" },
+      faq: {
+        title: "FAQ",
+        subtitle: "Короткие ответы про язык, цены, бронирование и оплату.",
+        searchP: "Поиск по вопросам…",
+        noResults: "Ничего не найдено. Попробуйте другой запрос.",
+        language: {
+          q: "Как работает переключение языка?",
+          a: "Статический интерфейс переводится на фронтенде, а туры и другой динамический контент локализуются бэкендом в зависимости от выбранного языка.",
+        },
+        currency: {
+          q: "Почему меняются цены при смене валюты?",
+          a: "Цены запрашиваются у бэкенда в выбранной валюте и отображаются соответствующим образом.",
+        },
+        booking: {
+          q: "Как забронировать тур?",
+          a: "Откройте тур, выберите даты и количество гостей, затем нажмите «Забронировать». Возможно, нужно будет войти в аккаунт.",
+        },
+        payment: {
+          q: "Какие способы оплаты поддерживаются?",
+          a: "Способы оплаты зависят от настроек на бэкенде. Доступные варианты будут показаны при оформлении.",
+        },
+        cancellation: {
+          q: "Можно ли отменить бронирование?",
+          a: "Да, правила отмены зависят от тура. Перед бронированием проверьте политику отмены на странице тура.",
+        },
+      },
       tour: { whereYoullBe: "Где вы будете", reviews: "отзывов", showAll: "Все фото", share: "Поделиться", save: "Сохранить", hostedBy: "Организатор", about: "Об опыте", showMore: "Показать ещё", included: "Что включено", bookNow: "Забронировать", notCharged: "Оплата позже", startDate: "ДАТА НАЧАЛА", endDate: "ДАТА ОКОНЧАНИЯ", guestsLabel: "ГОСТИ", adults: "{{n}} взрослых", ecoFee: "Эко-сбор", serviceFee: "Сервисный сбор", total: "Итого", freeCancellation: "Бесплатная отмена до {{date}}" },
       ai: { title: "Kyrgyz Travel AI", status: "ЭКСПЕРТ ОНЛАЙН", placeholder: "Спросите о вашем путешествии…", suggestPack: "Что взять с собой?", suggestHotel: "Отели в Караколе", suggestWeather: "Прогноз погоды", proposed: "МАРШРУТ", day: "ДЕНЬ", disclaimer: "AI может ошибаться. Проверяйте визы и правила безопасности.", error: "AI сейчас недоступен. Попробуйте еще раз через минуту." },
       auth: { modalTitle: "Войдите или зарегистрируйтесь", signin: "Войти", signup: "Создать аккаунт", email: "Email", phone: "Телефон", password: "Пароль", forgot: "Забыли пароль?", noAccount: "Нет аккаунта?", haveAccount: "Уже есть аккаунт?", continueGoogle: "Войти через Google", or: "или", reset: "Сброс пароля", resetSub: "Мы отправим ссылку на email.", sendLink: "Отправить ссылку" },
+      route: {
+        title: "Маршрут до",
+        back: "Назад",
+        startPoint: "ТОЧКА СТАРТА",
+        yourLocationOptional: "Ваше местоположение (необязательно)",
+        set: "Указать",
+        distance: "Расстояние",
+        time: "Время",
+        hoursShort: "ч",
+        minutesShort: "мин",
+        kmShort: "км",
+        tokenMissing: "Нет токена Mapbox. Добавьте `NEXT_PUBLIC_MAPBOX_TOKEN` в `.env.local`.",
+        findingDestination: "Ищем точку назначения…",
+        buildingRoute: "Строим маршрут…",
+        buildFailed: "Не удалось построить маршрут. Попробуйте ещё раз или укажите стартовую точку вручную.",
+      },
       dashboard: {
         title: "Мой кабинет",
         bookings: "Бронирования",
@@ -226,6 +324,11 @@ const resources = {
         cancelError: "Ошибка отмены",
         bookingCancelled: "Бронирование отменено",
         cancelFailed: "Не удалось отменить бронирование.",
+        changeAvatar: "Сменить аватар…",
+        removeAvatar: "Удалить аватар",
+        name: "Имя",
+        email: "Email",
+        phone: "Телефон",
       },
     },
   },
@@ -240,7 +343,20 @@ const resources = {
         aiText: "Маршрут, тизме, мейманкана жана кеңештерди секундда сунуштайм.",
         askAi: "AIден сура",
       },
-      nav: { explore: "Турлар", map: "Карта", experiences: "Тажрыйба", dashboard: "Кабинет", ai: "AI жардамчы", login: "Кирүү", signup: "Каттоо" },
+      nav: { explore: "Турлар", map: "Карта", experiences: "Тажрыйба", faq: "FAQ", dashboard: "Кабинет", ai: "AI жардамчы", login: "Кирүү", signup: "Каттоо" },
+      experiences: {
+        curated: "Тандалган",
+        title: "Кыргызстан боюнча тажрыйбалар",
+        subtitle: "Өзүңүзгө ылайыктуу укмушту тандаңыз — ар бир тур жергиликтүү гиддер тарабынан текшерилген.",
+        viewAll: "Баарын көрүү",
+        groups: {
+          horseback: { title: "Ат менен саякат", subtitle: "Альп жайлоолору аркылуу көп күндүк жүрүштөр" },
+          trekking: { title: "Трекинг жана жөө жүрүш", subtitle: "Бир күндүк сейилден жогорку тоолуу экспедицияларга чейин" },
+          cultural: { title: "Маданий тажрыйба", subtitle: "Үй-бүлө менен жашоо, кол өнөрчүлүк" },
+          yurts: { title: "Боз үйдө түнөө", subtitle: "Көчмөндөр жашаган жерде түнөө" },
+          "off-road": { title: "Оффроад жана экстрим", subtitle: "4x4, MTB жана алыскы капчыгайлар" },
+        },
+      },
       hero: {
         pill: "AI саякат жардамчысы",
         title: "Кыргызстан — тоолор асманга жеткен жер",
@@ -298,9 +414,51 @@ const resources = {
       },
       footer: { rights: "Бардык укуктар корголгон.", privacy: "Купуялык", terms: "Шарттар", sitemap: "Сайт картасы", destinations: "Багыттар", info: "Маалымат", newsletter: "Жаңылыктар", newsletterSub: "Эң жакшы сунуштар email менен.", emailP: "Email", join: "Жазылуу", travelVisa: "Виза", bestTime: "Качан баруу", etiquette: "Адеп", safety: "Коопсуздук", about: "Кыргызстандын кооздугун ачабыз жана жергиликтүү жамааттарды колдойбуз." },
       explore: { title: "Кыргызстан боюнча турлар", count: "Тянь-Шань боюнча {{n}} тандалган укмуш", searchP: "Турларды издөө…", sort: "Иргөө: Популярдуу", priceRange: "Баа", duration: "Узактыгы", difficulty: "Татаалдык", tourType: "Тур түрү", filters: "Фильтрлер", applyFilters: "Колдонуу", noResults: "Тандалган фильтрлер боюнча тур табылган жок.", easy: "Жеңил", moderate: "Орточо", challenging: "Татаал", sustainable: "Эко-саякат", sustainableText: "Эко-турга жазылып, Ала-Арчада 10 дарак отургузабыз.", learnMore: "Толугураак" },
+      faq: {
+        title: "FAQ",
+        subtitle: "Тил, баалар, брондоо жана төлөм боюнча кыска жооптор.",
+        searchP: "Суроолор боюнча издөө…",
+        noResults: "Эч нерсе табылган жок. Башкача издеп көрүңүз.",
+        language: {
+          q: "Тилди алмаштыруу кантип иштейт?",
+          a: "Интерфейстеги статикалык текст фронтендде которулат, ал эми турлар жана динамикалык контент тандалган тилге жараша бэкенд тарабынан локалдаштырылат.",
+        },
+        currency: {
+          q: "Валютаны алмаштырганда баа эмне үчүн өзгөрөт?",
+          a: "Баалар бэкендден сиз тандаган валютада суралып, ошол боюнча көрсөтүлөт.",
+        },
+        booking: {
+          q: "Турду кантип брондосо болот?",
+          a: "Турду ачыңыз, күндөрдү жана конокторду тандаңыз да «Брондоо» баскычын басыңыз.",
+        },
+        payment: {
+          q: "Кайсы төлөм ыкмалары бар?",
+          a: "Төлөм ыкмалары бэкендде кандай орнотулганына жараша болот. Төлөө учурунда жеткиликтүү варианттар көрсөтүлөт.",
+        },
+        cancellation: {
+          q: "Брондоону жокко чыгарса болобу?",
+          a: "Ооба, жокко чыгаруу эрежелери турга жараша. Тур бетиндеги шарттарды карап чыгыңыз.",
+        },
+      },
       tour: { whereYoullBe: "Кайда барасыз", reviews: "пикир", showAll: "Бардык сүрөттөр", share: "Бөлүшүү", save: "Сактоо", hostedBy: "Уюштуруучу", about: "Тур жөнүндө", showMore: "Дагы көрсөтүү", included: "Камтылган", bookNow: "Брондоо", notCharged: "Азырынча акча алынбайт", startDate: "БАШТАЛЫШ", endDate: "БҮТҮҮ", guestsLabel: "КОНОК", adults: "{{n}} чоң киши", ecoFee: "Эко-салым", serviceFee: "Кызмат акысы", total: "Жалпы", freeCancellation: "{{date}} чейин акысыз жокко чыгаруу" },
       ai: { title: "Kyrgyz Travel AI", status: "ЭКСПЕРТ ОНЛАЙН", placeholder: "Сапарыңыз жөнүндө сураңыз…", suggestPack: "Эмне алуу керек?", suggestHotel: "Каракол отелдери", suggestWeather: "Аба ырайы", proposed: "МАРШРУТ", day: "КҮН", disclaimer: "AI кателешиши мүмкүн. Виза жана коопсуздук маалыматын текшериңиз.", error: "AI азыр жеткиликсиз. Бир аздан кийин кайра аракет кылыңыз." },
       auth: { modalTitle: "Кирүү же катталуу", signin: "Кирүү", signup: "Каттоо", email: "Email", phone: "Телефон", password: "Сырсөз", forgot: "Сырсөздү унуттуңузбу?", noAccount: "Аккаунт жокпу?", haveAccount: "Аккаунт барбы?", continueGoogle: "Google аркылуу", or: "же", reset: "Сырсөздү жаңылоо", resetSub: "Email боюнча шилтеме жөнөтөбүз.", sendLink: "Шилтеме жөнөтүү" },
+      route: {
+        title: "Маршрут",
+        back: "Артка",
+        startPoint: "БАШТАЛУУ ЧЕКИТИ",
+        yourLocationOptional: "Жайгашкан жериңиз (милдеттүү эмес)",
+        set: "Орнотуу",
+        distance: "Аралык",
+        time: "Убакыт",
+        hoursShort: "саат",
+        minutesShort: "мүн",
+        kmShort: "км",
+        tokenMissing: "Mapbox токени жок. `.env.local` файлына `NEXT_PUBLIC_MAPBOX_TOKEN` кошуңуз.",
+        findingDestination: "Багыт пунктун табууда…",
+        buildingRoute: "Маршрут түзүлүүдө…",
+        buildFailed: "Маршрут түзүлгөн жок. Кайра аракет кылыңыз же баштапкы чекитти кол менен коюңуз.",
+      },
       dashboard: {
         title: "Менин кабинетим",
         bookings: "Брондоолор",
@@ -331,139 +489,32 @@ const resources = {
         cancelError: "Ката",
         bookingCancelled: "Брондоо жокко чыгарылды",
         cancelFailed: "Брондоону жокко чыгаруу мүмкүн эмес.",
+        changeAvatar: "Аватарды өзгөртүү…",
+        removeAvatar: "Аватарды өчүрүү",
+        name: "Аты",
+        email: "Email",
+        phone: "Телефон",
       },
     },
   },
 };
 
-// Use English as the only bundled source of truth and translate other languages on demand.
-const onlineResources = { en: resources.en } as const;
+// Bundle translations for supported UI languages.
+// This avoids relying on runtime auto-translate for core navigation/UI copy.
+const onlineResources = resources;
 
 let didInit = false;
-let didBindAutoTranslate = false;
-
-const STORAGE_PREFIX = "kg_travel_i18n_auto_v1:";
-const FLUSH_DELAY_MS = 80;
-const MAX_BATCH = 30;
-
-const getStorageKey = (lng: string) => `${STORAGE_PREFIX}${lng}`;
-
-const isBrowser = () => typeof window !== "undefined";
-
-const loadCachedTranslations = (lng: string) => {
-  if (!isBrowser() || lng === "en") return;
-  try {
-    const raw = localStorage.getItem(getStorageKey(lng));
-    if (!raw) return;
-    const data = JSON.parse(raw) as Record<string, string>;
-    if (!data || typeof data !== "object") return;
-    for (const [key, value] of Object.entries(data)) {
-      if (typeof value !== "string") continue;
-      if (!i18n.exists(key, { lng, ns: "translation" })) {
-        i18n.addResource(lng, "translation", key, value);
-      }
-    }
-  } catch {
-    // ignore broken cache
-  }
-};
-
-const persistTranslations = (lng: string, updates: Record<string, string>) => {
-  if (!isBrowser() || lng === "en") return;
-  try {
-    const key = getStorageKey(lng);
-    const prevRaw = localStorage.getItem(key);
-    const prev = (prevRaw ? (JSON.parse(prevRaw) as Record<string, string>) : {}) || {};
-    const next = { ...prev, ...updates };
-    localStorage.setItem(key, JSON.stringify(next));
-  } catch {
-    // ignore storage errors
-  }
-};
-
-const pendingByLang = new Map<string, Map<string, string>>();
-const timerByLang = new Map<string, ReturnType<typeof setTimeout>>();
-const inflightByLang = new Map<string, Promise<void>>();
-
-const queueTranslate = (lng: string, key: string, source: string) => {
-  if (!isBrowser()) return;
-  if (!lng || lng === "en") return;
-  if (!key) return;
-  if (!source) return;
-  if (i18n.exists(key, { lng, ns: "translation" })) return;
-
-  const bucket = pendingByLang.get(lng) ?? new Map<string, string>();
-  pendingByLang.set(lng, bucket);
-  if (!bucket.has(key)) bucket.set(key, source);
-
-  if (timerByLang.has(lng)) return;
-  timerByLang.set(
-    lng,
-    setTimeout(() => {
-      timerByLang.delete(lng);
-      void flushTranslations(lng);
-    }, FLUSH_DELAY_MS)
-  );
-};
-
-const flushTranslations = async (lng: string) => {
-  if (inflightByLang.has(lng)) return inflightByLang.get(lng);
-  const task = (async () => {
-    const bucket = pendingByLang.get(lng);
-    if (!bucket || bucket.size === 0) return;
-
-    const entries = Array.from(bucket.entries()).slice(0, MAX_BATCH);
-    for (const [k] of entries) bucket.delete(k);
-
-    const keys = entries.map(([k]) => k);
-    const texts = entries.map(([, v]) => v);
-
-    try {
-      const res = await api.post("/ai/translate/", { from: "en", to: lng, texts });
-      const translations: unknown = res?.data?.translations;
-      if (!Array.isArray(translations) || translations.length !== texts.length) return;
-
-      const updates: Record<string, string> = {};
-      translations.forEach((value, idx) => {
-        if (typeof value !== "string") return;
-        const k = keys[idx];
-        updates[k] = value;
-        i18n.addResource(lng, "translation", k, value);
-      });
-
-      if (Object.keys(updates).length) persistTranslations(lng, updates);
-    } catch {
-      // ignore translate failures; UI falls back to English.
-    } finally {
-      if (bucket.size > 0) void flushTranslations(lng);
-    }
-  })();
-
-  inflightByLang.set(lng, task);
-  try {
-    await task;
-  } finally {
-    inflightByLang.delete(lng);
-  }
-};
-
-const bindAutoTranslate = () => {
-  if (didBindAutoTranslate) return;
-  didBindAutoTranslate = true;
-
-  i18n.on("languageChanged", (lng) => {
-    const normalized = normalizeLang(lng);
-    loadCachedTranslations(normalized);
-  });
-};
+// NOTE:
+// Translation is strictly driven by the static i18next resources in this file.
+// No runtime auto-translation, no caching to localStorage.
 
 function normalizeLang(raw?: string | null) {
   const v = String(raw || "").trim().toLowerCase();
-  if (!v) return "en";
+  if (!v) return "ru";
   if (v.startsWith("ru")) return "ru";
   if (v === "kg" || v.startsWith("ky") || v.startsWith("kg")) return "kg";
   if (v.startsWith("en")) return "en";
-  return "en";
+  return "ru";
 }
 
 export function initI18n(initialLang?: string | null) {
@@ -478,19 +529,9 @@ export function initI18n(initialLang?: string | null) {
       lng,
       fallbackLng: "en",
       interpolation: { escapeValue: false },
-      saveMissing: true,
-      missingKeyHandler: (lngs, ns, key, fallbackValue) => {
-        const target = Array.isArray(lngs) ? lngs[0] : (lngs as any);
-        const normalized = normalizeLang(String(target || ""));
-        const source =
-          (typeof fallbackValue === "string" && fallbackValue) ||
-          (typeof i18n.getResource("en", ns, key) === "string" ? (i18n.getResource("en", ns, key) as string) : "");
-        queueTranslate(normalized, key, source);
-      },
+      saveMissing: false,
     });
     didInit = true;
-    bindAutoTranslate();
-    loadCachedTranslations(lng);
     return i18n;
   }
 
@@ -499,7 +540,6 @@ export function initI18n(initialLang?: string | null) {
     i18n.changeLanguage(lng);
   }
 
-  loadCachedTranslations(lng);
   return i18n;
 }
 
