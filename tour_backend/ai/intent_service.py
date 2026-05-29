@@ -9,6 +9,9 @@ from .tour_service import DESTINATION_ALIASES, parse_tour_filters, resolve_tour_
 TOUR_KEYWORDS = [
     "тур",
     "туры",
+    "турлар",
+    "тур сунушта",
+    "кандай турлар бар",
     "поездка",
     "вариант",
     "варианты",
@@ -21,6 +24,10 @@ TOUR_KEYWORDS = [
     "подбери",
     "посоветуй",
     "recommend",
+    "recommend a tour",
+    "recommend tour",
+    "show me tours",
+    "what tours are available",
     "available tours",
     "tour",
     "tours",
@@ -49,6 +56,13 @@ WEATHER_KEYWORDS = [
     "снег",
     "ветер",
     "прогноз",
+    "аба ырайы",
+    "аба ырайы кандай",
+    "жамгыр",
+    "кар жаайт",
+    "кар тушот",
+    "кар түшөт",
+    "шамал",
     "градус",
     "градусы",
     "жарко",
@@ -56,10 +70,48 @@ WEATHER_KEYWORDS = [
     "тепло",
     "forecast",
     "weather",
+    "what's the weather",
+    "what is the weather",
+    "current weather",
     "temperature",
     "rain",
     "snow",
     "wind",
+]
+
+WEATHER_COMPARE_KEYWORDS = [
+    "где теплее",
+    "самый теплый",
+    "самая теплая",
+    "самое теплое",
+    "самые теплые",
+    "самый холодный",
+    "самая холодная",
+    "самое холодное",
+    "самые холодные",
+    "где холоднее",
+    "где лучше климат",
+    "сравни погоду",
+    "где жарче",
+    "теплый климат",
+    "теплее всего",
+    "жарче всего",
+    "эң жылуу",
+    "эн жылуу",
+    "эң суук",
+    "эн суук",
+    "кайсы жерде жылуу",
+    "аба ырайын салыштыр",
+    "аба ырайын салыштыргыла",
+    "климат",
+    "coldest",
+    "warmest",
+    "hottest",
+    "warmer",
+    "climate",
+    "where is warmer",
+    "compare weather",
+    "best climate",
 ]
 
 PACKING_KEYWORDS = [
@@ -85,8 +137,55 @@ BUDGET_KEYWORDS = [
     "стоимость",
     "расходы",
     "цена",
+    "сколько стоит",
+    "канча акча",
+    "канча акча алышым керек",
+    "акча",
+    "чыгым",
+    "баа",
+    "how much money should i take",
+    "how much money",
+    "money",
+    "expenses",
     "price",
     "cost",
+    "budget",
+]
+
+KYRGYZ_LANGUAGE_MARKERS = [
+    "ң",
+    "ө",
+    "ү",
+    "кыргызстанда",
+    "кайсы",
+    "жерде",
+    "жылуу",
+    "суук",
+    "аба ырай",
+    "кандай",
+    "турлар",
+    "сунушта",
+    "канча",
+    "акча",
+    "алышым",
+    "керек",
+    "жалал",
+]
+
+ENGLISH_LANGUAGE_MARKERS = [
+    "where",
+    "what",
+    "which",
+    "warmest",
+    "hottest",
+    "coldest",
+    "weather",
+    "climate",
+    "tour",
+    "tours",
+    "recommend",
+    "available",
+    "money",
     "budget",
 ]
 
@@ -96,6 +195,19 @@ def _normalize_text(value: str) -> str:
     normalized = normalized.replace("ё", "е").replace("ө", "о").replace("ү", "у")
     normalized = normalized.replace("-", " ")
     return re.sub(r"\s+", " ", normalized).strip()
+
+
+def detect_language(message: Any) -> str:
+    raw_text = str(message or "").lower()
+    normalized = _normalize_text(raw_text)
+    has_latin = bool(re.search(r"[a-z]", raw_text))
+    has_cyrillic = bool(re.search(r"[а-яёңөү]", raw_text))
+
+    if any(marker in raw_text for marker in KYRGYZ_LANGUAGE_MARKERS):
+        return "ky"
+    if any(marker in normalized for marker in ENGLISH_LANGUAGE_MARKERS) or (has_latin and not has_cyrillic):
+        return "en"
+    return "ru"
 
 
 def _has_any(text: str, keywords: list[str]) -> bool:
@@ -138,6 +250,8 @@ def _previous_intent(recent_messages=None) -> str | None:
             return "budget"
         if _has_any(text, PACKING_KEYWORDS):
             return "packing"
+        if _has_any(text, WEATHER_COMPARE_KEYWORDS):
+            return "weather_compare"
         if _has_any(text, WEATHER_KEYWORDS):
             return "weather"
 
@@ -206,6 +320,7 @@ def _requested_limit(message: str) -> int | None:
 
 def resolve_intent(message, recent_messages=None, context=None):
     text = _normalize_text(message)
+    language = detect_language(message)
     destination = resolve_tour_destination(message)
     previous_intent = _previous_intent(recent_messages)
     previous_destination = _previous_destination(recent_messages)
@@ -219,11 +334,24 @@ def resolve_intent(message, recent_messages=None, context=None):
     explicit_tour = _has_any(text, TOUR_KEYWORDS)
     explicit_budget = _has_any(text, BUDGET_KEYWORDS)
     explicit_packing = _has_any(text, PACKING_KEYWORDS)
+    explicit_weather_compare = _has_any(text, WEATHER_COMPARE_KEYWORDS)
     explicit_weather = _has_any(text, WEATHER_KEYWORDS)
+
+    if explicit_weather_compare:
+        return {
+            "intent": "weather_compare",
+            "language": language,
+            "destination": destination,
+            "filters": {},
+            "confidence": 0.97,
+            "reason": "weather comparison keyword has highest priority",
+            "priority_match": "weather_compare_keyword",
+        }
 
     if explicit_weather:
         return {
             "intent": "weather",
+            "language": language,
             "destination": destination,
             "filters": {},
             "confidence": 0.96,
@@ -247,6 +375,7 @@ def resolve_intent(message, recent_messages=None, context=None):
             filters["exclude_ids"] = exclude_ids
         return {
             "intent": "tour_search",
+            "language": language,
             "destination": destination,
             "filters": filters,
             "confidence": 0.92,
@@ -263,6 +392,7 @@ def resolve_intent(message, recent_messages=None, context=None):
             filters["strict_destination"] = True
         return {
             "intent": "tour_search",
+            "language": language,
             "destination": destination,
             "filters": filters,
             "confidence": 0.95,
@@ -273,6 +403,7 @@ def resolve_intent(message, recent_messages=None, context=None):
     if explicit_budget:
         return {
             "intent": "budget",
+            "language": language,
             "destination": destination,
             "filters": {},
             "confidence": 0.9,
@@ -282,6 +413,7 @@ def resolve_intent(message, recent_messages=None, context=None):
     if explicit_packing:
         return {
             "intent": "packing",
+            "language": language,
             "destination": destination,
             "filters": {},
             "confidence": 0.88,
@@ -295,6 +427,7 @@ def resolve_intent(message, recent_messages=None, context=None):
             filters["strict_destination"] = True
         return {
             "intent": previous_intent,
+            "language": language,
             "destination": destination,
             "filters": filters,
             "confidence": 0.82,
@@ -303,6 +436,7 @@ def resolve_intent(message, recent_messages=None, context=None):
 
     return {
         "intent": "general",
+        "language": language,
         "destination": destination,
         "filters": {},
         "confidence": 0.5,

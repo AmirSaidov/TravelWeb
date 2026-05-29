@@ -51,7 +51,6 @@ ALLOWED_HOSTS = env_csv("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1
 INSTALLED_APPS = [
     'jet.dashboard',
     'jet',
-    'modeltranslation',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -68,7 +67,6 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -152,18 +150,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'ru'
-
-LANGUAGES = [
-    ('ru', 'Russian'),
-    ('en', 'English'),
-    ('ky', 'Kyrgyz'),
-]
-
-MODELTRANSLATION_DEFAULT_LANGUAGE = 'ru'
-MODELTRANSLATION_LANGUAGES = ('ru', 'en', 'ky')
-MODELTRANSLATION_FALLBACK_LANGUAGES = ('ru',)
-AUTO_TRANSLATE_CONTENT = env_bool("AUTO_TRANSLATE_CONTENT", default=True)
+LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
 

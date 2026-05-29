@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import AIConversation, AIMessage
-from .intent_service import resolve_intent
+from .intent_service import detect_language, resolve_intent
 from .budget_service import (
     estimate_trip_budget,
     has_days_in_message,
@@ -30,6 +30,7 @@ from .tour_service import (
 )
 from .weather_service import (
     WeatherServiceError,
+    compare_weather,
     get_weather,
     parse_weather_date,
     resolve_location,
@@ -48,6 +49,44 @@ MAX_CONTEXT_ITEM_CHARS = 180
 MAX_HISTORY_MESSAGES = 20
 MAX_HISTORY_CHARS = 9000
 MAX_HISTORY_MESSAGE_CHARS = 1200
+WEATHER_COMPARE_LOCATIONS = [
+    "Бишкек",
+    "Ош",
+    "Джалал-Абад",
+    "Баткен",
+    "Талас",
+    "Нарын",
+    "Каракол",
+    "Иссык-Куль",
+    "Сон-Куль",
+    "Ала-Арча",
+]
+LOCATION_LABELS = {
+    "en": {
+        "Бишкек": "Bishkek",
+        "Ош": "Osh",
+        "Джалал-Абад": "Jalal-Abad",
+        "Баткен": "Batken",
+        "Талас": "Talas",
+        "Нарын": "Naryn",
+        "Каракол": "Karakol",
+        "Иссык-Куль": "Issyk-Kul",
+        "Сон-Куль": "Son-Kul",
+        "Ала-Арча": "Ala-Archa",
+    },
+    "ky": {
+        "Бишкек": "Бишкек",
+        "Ош": "Ош",
+        "Джалал-Абад": "Жалал-Абад",
+        "Баткен": "Баткен",
+        "Талас": "Талас",
+        "Нарын": "Нарын",
+        "Каракол": "Каракол",
+        "Иссык-Куль": "Ысык-Көл",
+        "Сон-Куль": "Соң-Көл",
+        "Ала-Арча": "Ала-Арча",
+    },
+}
 
 system_prompt = """You are the AI assistant for a Kyrgyzstan tours website.
 You can see the current website page context: URL, page title, visible text, buttons, links, and tour data.
@@ -66,7 +105,8 @@ Recommend 1-3 most relevant tours and briefly explain why each fits, price, dura
 Do not invent current weather, prices, availability, schedules, bookings, hotel availability, or visa rules.
 If weather_service_data is unavailable, honestly say that the live forecast is unavailable.
 Give practical tourist weather recommendations: clothing, road conditions, mountains, rain, wind, and temperature.
-Answer in the user's language when it is clear; if the message is unclear or random, answer in Russian.
+Answer in the user's language when it is clear. Supported answer languages: Russian, English, Kyrgyz.
+If the user's language is unclear or random, answer in Russian.
 Format answers in clean Markdown, similar to ChatGPT.
 Use short paragraphs, blank lines, headings when useful, bullet lists, and bold text for important names, prices, and warnings.
 Use emoji moderately for travel facts such as price, duration, location, difficulty, weather, and links.
@@ -227,9 +267,20 @@ def _build_context_block(context, weather_data=None, tour_data=None, budget_data
     ).strip()
 
 
+def _language_label(language):
+    return {
+        "ru": "Russian",
+        "en": "English",
+        "ky": "Kyrgyz",
+    }.get(language, "Russian")
+
+
 def _build_prompt(message, context, weather_data=None, tour_data=None, budget_data=None):
+    language = detect_language(message)
     return (
         f"{system_prompt}\n\n"
+        f"Detected user language: {_language_label(language)} ({language}). "
+        f"Answer only in {_language_label(language)}.\n\n"
         f"{_build_context_block(context, weather_data, tour_data, budget_data)}\n\n"
         f"User request:\n{message}"
     )
@@ -340,8 +391,20 @@ def _limit_answer(answer):
     return f"{shortened}.".strip()
 
 
+def _message_language(message):
+    return detect_language(message)
+
+
 def _message_looks_english(message):
-    return bool(re.search(r"[a-zA-Z]", message)) and not bool(re.search(r"[а-яА-ЯёЁ]", message))
+    return _message_language(message) == "en"
+
+
+def _message_looks_kyrgyz(message):
+    return _message_language(message) == "ky"
+
+
+def _localized_location(location, language):
+    return LOCATION_LABELS.get(language, {}).get(location, location)
 
 
 def _weather_location_required_answer(message):
@@ -349,6 +412,11 @@ def _weather_location_required_answer(message):
         return (
             "Please specify the city or place in Kyrgyzstan: Bishkek, Osh, Karakol, Cholpon-Ata, "
             "Naryn, Jalal-Abad, Talas, Batken, Ala-Archa, Son-Kul, or Issyk-Kul."
+        )
+    if _message_looks_kyrgyz(message):
+        return (
+            "Кыргызстандагы шаарды же жерди тактаңыз: Бишкек, Ош, Каракол, Чолпон-Ата, "
+            "Нарын, Жалал-Абад, Талас, Баткен, Ала-Арча, Соң-Көл же Ысык-Көл."
         )
 
     return (
@@ -360,6 +428,8 @@ def _weather_location_required_answer(message):
 def _weather_unavailable_answer(message):
     if _message_looks_english(message):
         return "Live forecast is temporarily unavailable. I can give a seasonal recommendation."
+    if _message_looks_kyrgyz(message):
+        return "Азыр live-прогноз убактылуу жеткиликсиз. Сезондук сунуш бере алам."
 
     return "Сейчас live-прогноз временно недоступен. Могу дать сезонную рекомендацию."
 
@@ -367,6 +437,8 @@ def _weather_unavailable_answer(message):
 def _budget_destination_required_answer(message):
     if _message_looks_english(message):
         return "Please specify the destination: Bishkek, Osh, Issyk-Kul, Karakol, Son-Kul, Naryn, or Ala-Archa."
+    if _message_looks_kyrgyz(message):
+        return "Багытты тактаңыз: Бишкек, Ош, Ысык-Көл, Каракол, Соң-Көл, Нарын же Ала-Арча."
 
     return "Уточните направление: Бишкек, Ош, Иссык-Куль, Каракол, Сон-Куль, Нарын или Ала-Арча."
 
@@ -402,12 +474,36 @@ def _ru_people(people):
     return f"{people} человек"
 
 
-def _format_budget_answer(budget_data, days_was_provided=True):
-    destination = _destination_to_ru(budget_data["destination"])
+def _format_budget_answer(budget_data, days_was_provided=True, message=""):
+    language = _message_language(message)
+    destination = _localized_location(_destination_to_ru(budget_data["destination"]), language)
     days = budget_data["days"]
     people = budget_data["people"]
+    if language == "en":
+        days_text = "1 day" if days == 1 else f"{days} days"
+        people_text = "1 person" if people == 1 else f"{people} people"
+        days_note = "" if days_was_provided else " I calculated it for 1 day; tell me the trip length for a more precise estimate."
+        return (
+            f"For a trip to {destination} for {days_text} and {people_text}, take about "
+            f"{_format_kgs(budget_data['total_min'])}-{_format_kgs(budget_data['total_max'])} KGS. "
+            f"Roughly: food {_format_kgs(budget_data['food_total'])} KGS, "
+            f"transport {_format_kgs(budget_data['transport_total'])} KGS, "
+            f"hotel {_format_kgs(budget_data['hotel_total'])} KGS, "
+            f"activities {_format_kgs(budget_data['activities_total'])} KGS.{days_note}"
+        )
+    if language == "ky":
+        days_note = "" if days_was_provided else " Мен 1 күнгө эсептедим. Сапар узагыраак болсо, күн санын жазыңыз."
+        return (
+            f"{destination} багытына {days} күнгө {people} адам үчүн болжол менен "
+            f"{_format_kgs(budget_data['total_min'])}-{_format_kgs(budget_data['total_max'])} сом керек. "
+            f"Болжолдуу: тамак-аш {_format_kgs(budget_data['food_total'])} сом, "
+            f"транспорт {_format_kgs(budget_data['transport_total'])} сом, "
+            f"жашоо {_format_kgs(budget_data['hotel_total'])} сом, "
+            f"активдүүлүктөр {_format_kgs(budget_data['activities_total'])} сом.{days_note}"
+        )
+
     currency = "сом"
-    days_note = "" if days_was_provided else " Я посчитал на 1 день. Если поездка дольше — укажите количество дней."
+    days_note = "" if days_was_provided else " Я посчитал на 1 день. Если поездка дольше - укажите количество дней."
 
     return (
         f"Примерно на поездку в {destination} на {_ru_days(days)} для {_ru_people(people)} стоит взять "
@@ -429,12 +525,30 @@ def _format_tour_price(tour):
     return f"{price} {currency}".strip()
 
 
-def _format_tour_recommendations(tours):
+def _format_tour_recommendations(tours, message=""):
+    language = _message_language(message)
     if not tours:
+        if language == "en":
+            return "I couldn't find suitable tours on the site right now. Try changing the budget, destination, or duration."
+        if language == "ky":
+            return "Азыр сайттан ылайыктуу тур табылган жок. Бюджетти, багытты же күн санын өзгөртүп көрүңүз."
         return "Сейчас я не нашел подходящих туров на сайте. Можете изменить бюджет, направление или количество дней."
 
     selected = tours[:3]
-    lines = [f"# Подходящие туры\n\nЯ нашел {len(selected)} подходящих тура:" if len(selected) != 1 else "# Подходящий тур\n\nЯ нашел подходящий тур:"]
+    if language == "en":
+        lines = [
+            f"# Suitable tours\n\nI found {len(selected)} suitable tours:"
+            if len(selected) != 1
+            else "# Suitable tour\n\nI found a suitable tour:"
+        ]
+    elif language == "ky":
+        lines = [
+            f"# Ылайыктуу турлар\n\nМен {len(selected)} ылайыктуу тур таптым:"
+            if len(selected) != 1
+            else "# Ылайыктуу тур\n\nМен ылайыктуу тур таптым:"
+        ]
+    else:
+        lines = [f"# Подходящие туры\n\nЯ нашел {len(selected)} подходящих тура:" if len(selected) != 1 else "# Подходящий тур\n\nЯ нашел подходящий тур:"]
     for index, tour in enumerate(selected, start=1):
         title = tour.get("title") or "Тур"
         destination = tour.get("destination") or "направление не указано"
@@ -443,15 +557,38 @@ def _format_tour_recommendations(tours):
         description = _truncate_text(tour.get("description") or "", 180)
         reason = description or f"Подходит для поездки в направление {destination}."
         url = tour.get("url") or f"/tour/{tour.get('id')}"
-        lines.append(
-            f"## {index}. {title}\n\n"
-            f"💰 **{_format_tour_price(tour)}**  \n"
-            f"🕒 **{duration} дн.**  \n"
-            f"📍 **{destination}**  \n"
-            f"🥾 **Сложность:** {difficulty}\n\n"
-            f"{reason}\n\n"
-            f"🔗 [Открыть тур]({url})"
-        )
+        if language == "en":
+            reason = description or f"This fits a trip to {destination}."
+            lines.append(
+                f"## {index}. {title}\n\n"
+                f"💰 **{_format_tour_price(tour)}**  \n"
+                f"🕒 **{duration} days**  \n"
+                f"📍 **{destination}**  \n"
+                f"🥾 **Difficulty:** {difficulty}\n\n"
+                f"{reason}\n\n"
+                f"🔗 [Open tour]({url})"
+            )
+        elif language == "ky":
+            reason = description or f"{destination} багытына ылайыктуу."
+            lines.append(
+                f"## {index}. {title}\n\n"
+                f"💰 **{_format_tour_price(tour)}**  \n"
+                f"🕒 **{duration} күн**  \n"
+                f"📍 **{destination}**  \n"
+                f"🥾 **Кыйынчылык:** {difficulty}\n\n"
+                f"{reason}\n\n"
+                f"🔗 [Турду ачуу]({url})"
+            )
+        else:
+            lines.append(
+                f"## {index}. {title}\n\n"
+                f"💰 **{_format_tour_price(tour)}**  \n"
+                f"🕒 **{duration} дн.**  \n"
+                f"📍 **{destination}**  \n"
+                f"🥾 **Сложность:** {difficulty}\n\n"
+                f"{reason}\n\n"
+                f"🔗 [Открыть тур]({url})"
+            )
     return "\n\n".join(lines)
 
 
@@ -459,6 +596,52 @@ def _format_degree(value):
     if value is None:
         return None
     return f"{value:g}°C"
+
+
+def _weather_compare_unavailable_answer(message):
+    if _message_looks_english(message):
+        return (
+            "I couldn't compare live weather right now. Usually, the warmest climate is in the south: "
+            "Osh, Jalal-Abad, and Batken."
+        )
+    if _message_looks_kyrgyz(message):
+        return "Азыр live аба ырайын салыштыруу мүмкүн болбой жатат. Адатта эң жылуу аймактар түштүктө: Ош, Жалал-Абад, Баткен."
+    return "Сейчас не удалось сравнить live-погоду. Обычно теплее всего на юге: Ош, Джалал-Абад, Баткен."
+
+
+def _format_weather_compare_answer(weather_items, message):
+    if not weather_items:
+        return _weather_compare_unavailable_answer(message)
+
+    language = _message_language(message)
+    if language == "en":
+        lines = ["Currently the warmest locations:"]
+        for index, item in enumerate(weather_items, start=1):
+            lines.append(
+                f"{index}. **{_localized_location(item.get('location') or 'Location', language)}** — **{_format_degree(item.get('temperature'))}**"
+            )
+
+        lines.append("\nUsually, the warmest climate in Kyrgyzstan is in the south of the country.")
+        return "\n".join(lines)
+
+    if language == "ky":
+        lines = ["Азыр эң жылуу жерлер:"]
+        for index, item in enumerate(weather_items, start=1):
+            lines.append(
+                f"{index}. **{_localized_location(item.get('location') or 'Жер', language)}** — **{_format_degree(item.get('temperature'))}**"
+            )
+
+        lines.append("\nКыргызстанда эң жылуу климат көбүнчө өлкөнүн түштүк аймактарында болот.")
+        return "\n".join(lines)
+
+    lines = ["Сейчас теплее всего:"]
+    for index, item in enumerate(weather_items, start=1):
+        lines.append(
+            f"{index}. **{item.get('location') or 'Локация'}** — **{_format_degree(item.get('temperature'))}**"
+        )
+
+    lines.append("\nОбычно самый теплый климат в Кыргызстане — на юге страны.")
+    return "\n".join(lines)
 
 
 def _location_in_ru(location):
@@ -498,7 +681,8 @@ def _format_weather_answer(weather_data, message):
     description = weather_data.get("weather_description") or "без описания"
     recommendation = weather_data.get("tourist_recommendation") or weather_data.get("recommendation") or ""
 
-    if _message_looks_english(message):
+    language = _message_language(message)
+    if language == "en":
         temp_part = f"around {temperature_text}" if temperature_text else "the temperature data is incomplete"
         wind_part = f", wind about {wind_speed:g} km/h" if isinstance(wind_speed, (int, float)) else ""
         precipitation_part = (
@@ -507,7 +691,16 @@ def _format_weather_answer(weather_data, message):
             else ", no significant precipitation"
         )
         range_part = f" Daily range: {temp_min} to {temp_max}." if temp_min and temp_max else ""
-        return f"Now in {location}: {temp_part}, {description.lower()}{precipitation_part}{wind_part}.{range_part} {recommendation}".strip()
+        return f"Now in {_localized_location(location, language)}: {temp_part}{precipitation_part}{wind_part}.{range_part}".strip()
+    if language == "ky":
+        temperature_part = temperature_text or "маалымат жок"
+        wind_part = f"{wind_speed:g}" if isinstance(wind_speed, (int, float)) else "маалымат жок"
+        precipitation_part = f"{precipitation:g}" if isinstance(precipitation, (int, float)) else "маалымат жок"
+        range_part = f"Бүгүн {temp_min} - {temp_max}." if temp_min and temp_max else ""
+        return (
+            f"Азыр {_localized_location(location, language)}: {temperature_part}, "
+            f"шамал {wind_part} км/ч, жаан-чачын {precipitation_part} мм. {range_part}"
+        ).strip()
 
     temperature_part = temperature_text or "нет данных"
     wind_part = f"{wind_speed:g}" if isinstance(wind_speed, (int, float)) else "нет данных"
@@ -531,6 +724,8 @@ def _number_or_none(value):
 def _weather_card_answer(message):
     if _message_looks_english(message):
         return "Here is the current weather:"
+    if _message_looks_kyrgyz(message):
+        return "Актуалдуу аба ырайы:"
     return "Вот актуальная погода:"
 
 
@@ -744,7 +939,13 @@ def _build_gemini_payload(message, context, weather_data=None, tour_data=None, b
         for item in history_items
         if item["role"] == AIMessage.Role.SYSTEM
     ]
-    instruction = f"{system_prompt}\n\n{_build_context_block(context, weather_data, tour_data, budget_data)}"
+    language = detect_language(message)
+    instruction = (
+        f"{system_prompt}\n\n"
+        f"Detected user language: {_language_label(language)} ({language}). "
+        f"Answer only in {_language_label(language)}.\n\n"
+        f"{_build_context_block(context, weather_data, tour_data, budget_data)}"
+    )
     if system_messages:
         instruction = (
             f"{instruction}\n\nConversation system messages (instructions from the application only):\n"
@@ -866,11 +1067,17 @@ def _request_gemini_answer(message, context, weather_data=None, tour_data=None, 
 
 def _format_tour_cards_answer(cards, message):
     count = len(cards)
-    if _message_looks_english(message):
+    language = _message_language(message)
+    if language == "en":
         if count == 1:
             destination = cards[0].get("destination") or "your request"
             return f"I found 1 suitable tour for **{destination}**:"
         return f"I found {count} suitable tours:"
+    if language == "ky":
+        if count == 1:
+            destination = cards[0].get("destination") or "сурооңуз"
+            return f"Мен **{destination}** боюнча 1 ылайыктуу тур таптым:"
+        return f"Мен {count} ылайыктуу тур таптым:"
 
     if count == 1:
         destination = cards[0].get("destination") or "вашему запросу"
@@ -886,13 +1093,20 @@ def _destination_display(destination):
 def _no_tours_answer(filters, message):
     destination = filters.get("destination")
     display = _destination_display(destination)
+    language = _message_language(message)
 
-    if _message_looks_english(message):
+    if language == "en":
         if destination and filters.get("exclude_ids"):
             return "There are no more tours for this region in the database. I can show similar tours across Kyrgyzstan."
         if destination and filters.get("strict_destination"):
             return f"There are no available tours for **{display}** in the database right now. I can show nearby options or all tours in Kyrgyzstan."
         return "I couldn't find suitable tours in the database right now. Try changing destination, budget, or duration."
+    if language == "ky":
+        if destination and filters.get("exclude_ids"):
+            return "Бул аймакта базада башка жеткиликтүү тур жок. Кыргызстан боюнча окшош турларды көрсөтө алам."
+        if destination and filters.get("strict_destination"):
+            return f"Азыр базада **{display}** боюнча жеткиликтүү тур жок. Жакын варианттарды же Кыргызстан боюнча бардык турларды көрсөтө алам."
+        return "Азыр сайттан ылайыктуу тур табылган жок. Багытты, бюджетти же күн санын өзгөртүп көрүңүз."
 
     if destination and filters.get("exclude_ids"):
         return "В этом регионе больше нет других доступных туров в базе. Могу показать похожие туры по Кыргызстану."
@@ -904,6 +1118,8 @@ def _no_tours_answer(filters, message):
 def _packing_location_required_answer(message):
     if _message_looks_english(message):
         return "Please specify the city or place so I can suggest clothing based on the current forecast."
+    if _message_looks_kyrgyz(message):
+        return "Актуалдуу аба ырайына жараша кийим сунушташым үчүн шаарды же жерди тактаңыз."
     return "Уточните город или место, чтобы я подсказал одежду по актуальной погоде."
 
 
@@ -928,7 +1144,8 @@ def _format_packing_answer(weather_data, message):
         snowfall if isinstance(snowfall, (int, float)) else 0,
     )
 
-    if _message_looks_english(message):
+    language = _message_language(message)
+    if language == "en":
         items = []
         if isinstance(temperature, (int, float)):
             if temperature < 5:
@@ -949,6 +1166,28 @@ def _format_packing_answer(weather_data, message):
             f"### What to wear in {location}\n\n"
             f"Forecast: **{_format_degree(temperature) or 'no temperature data'}**, {description.lower()}.{range_text}\n\n"
             f"Take: {', '.join(dict.fromkeys(items))}."
+        )
+    if language == "ky":
+        items = []
+        if isinstance(temperature, (int, float)):
+            if temperature < 5:
+                items.append("жылуу катмарлар, баш кийим, мээлей жана жылуу бут кийим")
+            elif temperature < 18:
+                items.append("катмарлап кийим жана жеңил күрмө")
+            else:
+                items.append("жеңил кийим, кепка, күндөн коргоочу көз айнек жана суу")
+        else:
+            items.append("катмарлап кийим")
+        if wet_amount > 0:
+            items.append("суу өткөрбөгөн күрмө жана бут кийим")
+        if isinstance(wind_speed, (int, float)) and wind_speed >= 25:
+            items.append("шамал өткөрбөгөн үстүңкү кийим")
+
+        range_text = f" Күндүзгү диапазон: **{_format_degree(temp_min)} - {_format_degree(temp_max)}**." if temp_min and temp_max else ""
+        return (
+            f"### {_localized_location(location, language)} үчүн эмне кийүү керек\n\n"
+            f"Прогноз: **{_format_degree(temperature) or 'температура боюнча маалымат жок'}**.{range_text}\n\n"
+            f"Алыңыз: {', '.join(dict.fromkeys(items))}."
         )
 
     items = []
@@ -985,6 +1224,10 @@ def _generate_ai_response(message, context, history=None, request=None):
     print("DESTINATION:", destination)
     print("FILTERS:", filters)
 
+    if intent == "weather_compare":
+        weather_items = compare_weather(WEATHER_COMPARE_LOCATIONS)
+        return {"answer": _format_weather_compare_answer(weather_items, message)}
+
     if intent == "tour_search":
         tour_data = get_available_tours(filters)
         print("TOUR_IDS:", [tour["id"] for tour in tour_data])
@@ -999,13 +1242,13 @@ def _generate_ai_response(message, context, history=None, request=None):
             }
 
         if not _gemini_api_key_available():
-            return {"answer": _format_tour_recommendations(tour_data)}
+            return {"answer": _format_tour_recommendations(tour_data, message)}
 
         try:
             return {"answer": _request_gemini_answer(message, context, tour_data=tour_data, history=history)}
         except AIServiceError:
             logger.exception("Gemini tour recommendation request failed; using local formatter")
-            return {"answer": _format_tour_recommendations(tour_data)}
+            return {"answer": _format_tour_recommendations(tour_data, message)}
 
     if intent == "budget":
         budget_destination = destination or resolve_budget_destination(message)
@@ -1019,13 +1262,13 @@ def _generate_ai_response(message, context, history=None, request=None):
             style=parse_budget_style(message),
         )
         if not _gemini_api_key_available():
-            return {"answer": _format_budget_answer(budget_data, has_days_in_message(message))}
+            return {"answer": _format_budget_answer(budget_data, has_days_in_message(message), message)}
 
         try:
             return {"answer": _request_gemini_answer(message, context, budget_data=budget_data, history=history)}
         except AIServiceError:
             logger.exception("Gemini budget request failed; using local formatter")
-            return {"answer": _format_budget_answer(budget_data, has_days_in_message(message))}
+            return {"answer": _format_budget_answer(budget_data, has_days_in_message(message), message)}
 
     if intent == "packing":
         location = resolve_location(destination or "") or resolve_location(message)

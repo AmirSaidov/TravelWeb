@@ -1,12 +1,9 @@
 from decimal import Decimal
-from unittest.mock import patch
 
-from django.db import models
-from django.test import RequestFactory, SimpleTestCase, override_settings
-from django.utils.translation import override
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 
 from .models import Tour
-from .serializers import TourSerializer, make_absolute_media_url
+from .serializers import make_absolute_media_url
 
 
 class MediaUrlTests(SimpleTestCase):
@@ -32,78 +29,63 @@ class MediaUrlTests(SimpleTestCase):
         self.assertEqual(make_absolute_media_url(url), url)
 
 
-class TourDynamicTranslationTests(SimpleTestCase):
-    def _tour(self):
-        return Tour(
-            title="Иссык-Куль тур",
-            description="Описание тура",
+class TourApiLanguageTests(TestCase):
+    def setUp(self):
+        self.tour = Tour.objects.create(
+            title="Fallback title",
+            title_ru="Русский заголовок",
+            title_en="English title",
+            title_ky="Кыргызча аталыш",
+            description="Fallback description",
+            description_ru="Русское описание",
+            description_en="English description",
+            description_ky="Кыргызча сүрөттөмө",
             price=Decimal("3500.00"),
             currency="KGS",
-            location="Иссык-Куль",
+            location="Fallback location",
+            location_ru="Русская локация",
+            location_en="English location",
+            location_ky="Кыргызча жер",
             duration=2,
-            difficulty="Легкий",
+            difficulty="Easy",
             types=[],
             max_people=8,
             image="tours/test.jpg",
         )
 
-    @patch("tours.translation_service.auto_translate_text")
-    def test_tour_populates_translation_fields_from_russian_source(self, mocked_translate):
-        mocked_translate.side_effect = lambda text, language: f"{language}:{text}"
-        tour = self._tour()
+    def test_tours_api_lang_ru_returns_russian_fields(self):
+        response = self.client.get("/api/tours/?lang=ru")
 
-        changed_fields = tour._populate_translation_fields()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["title"], "Русский заголовок")
+        self.assertEqual(response.json()[0]["description"], "Русское описание")
+        self.assertEqual(response.json()[0]["location"], "Русская локация")
 
-        self.assertEqual(tour.title_ru, "Иссык-Куль тур")
-        self.assertEqual(tour.title_en, "en:Иссык-Куль тур")
-        self.assertEqual(tour.title_ky, "ky:Иссык-Куль тур")
-        self.assertEqual(tour.description_ru, "Описание тура")
-        self.assertEqual(tour.description_en, "en:Описание тура")
-        self.assertEqual(tour.description_ky, "ky:Описание тура")
-        self.assertIn("title_en", changed_fields)
-        self.assertIn("description_ky", changed_fields)
+    def test_tours_api_lang_en_returns_english_fields(self):
+        response = self.client.get("/api/tours/?lang=en")
 
-    @patch.object(models.Model, "save")
-    @patch.object(Tour, "_populate_translation_fields", return_value={"title_en", "description_en"})
-    def test_tour_save_populates_translations_and_preserves_update_fields(self, mocked_populate, mocked_model_save):
-        tour = self._tour()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["title"], "English title")
+        self.assertEqual(response.json()[0]["description"], "English description")
+        self.assertEqual(response.json()[0]["location"], "English location")
 
-        tour.save(update_fields={"title_ru"})
+    def test_tours_api_lang_ky_returns_kyrgyz_fields(self):
+        response = self.client.get("/api/tours/?lang=ky")
 
-        mocked_populate.assert_called_once()
-        mocked_model_save.assert_called_once()
-        self.assertEqual(
-            mocked_model_save.call_args.kwargs["update_fields"],
-            {"title_ru", "title_en", "description_en"},
-        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["title"], "Кыргызча аталыш")
+        self.assertEqual(response.json()[0]["description"], "Кыргызча сүрөттөмө")
+        self.assertEqual(response.json()[0]["location"], "Кыргызча жер")
 
-    def test_serializer_returns_active_language_without_exposing_all_language_fields(self):
-        tour = self._tour()
-        tour.title_ru = "Иссык-Куль тур"
-        tour.title_en = "Issyk-Kul tour"
-        tour.title_ky = "Ысык-Көл туру"
-        tour.description_ru = "Описание тура"
-        tour.description_en = "Tour description"
-        tour.description_ky = "Турдун сүрөттөмөсү"
+    def test_tours_api_lang_falls_back_to_default_fields_when_translation_is_empty(self):
+        self.tour.title_en = ""
+        self.tour.description_en = ""
+        self.tour.location_en = ""
+        self.tour.save(update_fields=["title_en", "description_en", "location_en"])
 
-        with override("ky"):
-            data = TourSerializer(tour).data
+        response = self.client.get("/api/tours/?lang=en")
 
-        self.assertEqual(data["title"], "Ысык-Көл туру")
-        self.assertEqual(data["description"], "Турдун сүрөттөмөсү")
-        self.assertNotIn("title_ru", data)
-        self.assertNotIn("title_en", data)
-        self.assertNotIn("title_ky", data)
-
-    def test_serializer_falls_back_to_russian_when_translation_is_empty(self):
-        tour = self._tour()
-        tour.title_ru = "Иссык-Куль тур"
-        tour.description_ru = "Описание тура"
-        tour.title_en = ""
-        tour.description_en = ""
-
-        with override("en"):
-            data = TourSerializer(tour).data
-
-        self.assertEqual(data["title"], "Иссык-Куль тур")
-        self.assertEqual(data["description"], "Описание тура")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["title"], "Fallback title")
+        self.assertEqual(response.json()[0]["description"], "Fallback description")
+        self.assertEqual(response.json()[0]["location"], "Fallback location")

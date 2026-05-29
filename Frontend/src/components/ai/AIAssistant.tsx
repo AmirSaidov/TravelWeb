@@ -8,14 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api/client";
 import { getPageContext, initPageActionTracking } from "@/lib/aiContext";
-<<<<<<< HEAD
+
 import { getNumberLocale } from "@/lib/currency";
-=======
+
 import { AIMessageMarkdown } from "@/components/ai/AIMessageMarkdown";
 import { AITourCards } from "@/components/ai/AITourCards";
 import { AIWeatherCards } from "@/components/ai/AIWeatherCards";
+
 import type { AICard, AIResponse } from "@/components/ai/types";
->>>>>>> 4b89e51544d3586b6d3857413771ba70b9d4b92a
 
 interface DayBlock { day: number; title: string; tag: "Culture" | "Nature" | "Adventure"; text: string; img: string; }
 interface Msg { id: string; role: "user" | "assistant"; text?: string; cards?: AICard[]; timeline?: DayBlock[]; pricePerPerson?: number; ts: number; }

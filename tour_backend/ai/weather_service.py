@@ -574,3 +574,35 @@ def get_weather(location_name: str, date: str | None = None) -> dict[str, Any]:
     except WeatherServiceError:
         logger.exception("Weather fallback used location=%s date=%s", location_key, date)
         return _fallback_weather_response(location_key, date)
+
+
+def compare_weather(locations: list[str]) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+
+    for location in locations:
+        try:
+            weather = get_weather(location)
+        except WeatherServiceError:
+            logger.exception("Weather comparison failed for location=%s", location)
+            continue
+
+        if weather.get("is_fallback"):
+            logger.warning("Weather comparison skipped fallback location=%s", location)
+            continue
+
+        temperature = weather.get("temperature")
+        if not isinstance(temperature, (int, float)):
+            logger.warning("Weather comparison skipped location=%s without temperature", location)
+            continue
+
+        results.append(
+            {
+                "location": weather.get("location") or str(location),
+                "temperature": temperature,
+                "weather_description": weather.get("weather_description") or weather.get("description") or "",
+                "wind_speed": weather.get("wind_speed"),
+                "precipitation": weather.get("precipitation"),
+            }
+        )
+
+    return sorted(results, key=lambda item: item["temperature"], reverse=True)[:3]

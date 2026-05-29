@@ -5,10 +5,15 @@ from django.core.cache import cache
 from django.test import SimpleTestCase
 import requests
 
-from .intent_service import resolve_intent
+from .intent_service import detect_language, resolve_intent
 from .tour_service import _tour_matches_destination
 from .views import _generate_ai_response
-from .weather_service import WEATHER_TIMEOUT_SECONDS, get_weather
+from .weather_service import (
+    WEATHER_TIMEOUT_SECONDS,
+    WeatherServiceError,
+    compare_weather,
+    get_weather,
+)
 
 
 class IntentResolverTests(SimpleTestCase):
@@ -30,6 +35,29 @@ class IntentResolverTests(SimpleTestCase):
         self.assertEqual(second["destination"], "osh")
         self.assertEqual(second["priority_match"], "weather_keyword")
 
+    def test_weather_compare_keywords_have_highest_priority(self):
+        resolved = resolve_intent("где самый теплый климат в Кыргызстане?")
+
+        self.assertEqual(resolved["intent"], "weather_compare")
+        self.assertEqual(resolved["priority_match"], "weather_compare_keyword")
+
+    def test_weather_compare_keyword_does_not_become_tour_search(self):
+        resolved = resolve_intent("сравни погоду по регионам Кыргызстана")
+
+        self.assertEqual(resolved["intent"], "weather_compare")
+
+    def test_english_weather_compare_intent_and_language(self):
+        resolved = resolve_intent("Where is the warmest climate in Kyrgyzstan?")
+
+        self.assertEqual(resolved["intent"], "weather_compare")
+        self.assertEqual(resolved["language"], "en")
+
+    def test_kyrgyz_weather_compare_intent_and_language(self):
+        resolved = resolve_intent("Кыргызстанда эң жылуу климат кайсы жерде?")
+
+        self.assertEqual(resolved["intent"], "weather_compare")
+        self.assertEqual(resolved["language"], "ky")
+
     def test_tour_keywords_stay_tour_search(self):
         first = resolve_intent("какие туры на иссык-куль")
         second = resolve_intent("туры в каракол")
@@ -38,6 +66,23 @@ class IntentResolverTests(SimpleTestCase):
         self.assertEqual(first["destination"], "issyk-kul")
         self.assertEqual(second["intent"], "tour_search")
         self.assertEqual(second["destination"], "karakol")
+
+    def test_english_tour_search_intent(self):
+        resolved = resolve_intent("What tours are available?")
+
+        self.assertEqual(resolved["intent"], "tour_search")
+        self.assertEqual(resolved["language"], "en")
+
+    def test_kyrgyz_weather_search_intent(self):
+        resolved = resolve_intent("Аба ырайы кандай?")
+
+        self.assertEqual(resolved["intent"], "weather")
+        self.assertEqual(resolved["language"], "ky")
+
+    def test_language_detection_supports_ru_en_ky(self):
+        self.assertEqual(detect_language("какая погода в оше"), "ru")
+        self.assertEqual(detect_language("What's the weather in Osh?"), "en")
+        self.assertEqual(detect_language("Аба ырайы кандай?"), "ky")
 
     def test_short_location_followup_inherits_tour_context(self):
         history = [
@@ -188,6 +233,53 @@ class WeatherServiceTests(SimpleTestCase):
         self.assertEqual(second["temperature"], 20)
         self.assertEqual(mocked_get.call_count, 1)
 
+    @patch("ai.weather_service.get_weather")
+    def test_compare_weather_skips_failed_locations_and_sorts_top_three(self, mocked_get_weather):
+        weather_by_location = {
+            "Бишкек": {
+                "location": "Бишкек",
+                "temperature": 20,
+                "weather_description": "Ясно",
+                "wind_speed": 5,
+                "precipitation": 0,
+            },
+            "Ош": {
+                "location": "Ош",
+                "temperature": 26,
+                "weather_description": "Ясно",
+                "wind_speed": 4,
+                "precipitation": 0,
+            },
+            "Джалал-Абад": {
+                "location": "Джалал-Абад",
+                "temperature": 25,
+                "weather_description": "Облачно",
+                "wind_speed": 7,
+                "precipitation": 0.1,
+            },
+            "Баткен": {
+                "location": "Баткен",
+                "temperature": 24,
+                "weather_description": "Ясно",
+                "wind_speed": 8,
+                "precipitation": 0,
+            },
+            "Нарын": {"location": "Нарын", "temperature": None, "is_fallback": True},
+        }
+
+        def weather_side_effect(location):
+            if location == "Каракол":
+                raise WeatherServiceError("temporary failure")
+            return weather_by_location[location]
+
+        mocked_get_weather.side_effect = weather_side_effect
+
+        with patch("ai.weather_service.logger"):
+            result = compare_weather(["Бишкек", "Ош", "Джалал-Абад", "Баткен", "Нарын", "Каракол"])
+
+        self.assertEqual([item["location"] for item in result], ["Ош", "Джалал-Абад", "Баткен"])
+        self.assertEqual(result[0]["temperature"], 26)
+
 
 class WeatherCardResponseTests(SimpleTestCase):
     @patch("ai.views.get_available_tours")
@@ -216,4 +308,69 @@ class WeatherCardResponseTests(SimpleTestCase):
         self.assertEqual(response["cards"][0]["temp_min"], 13.7)
         self.assertEqual(response["cards"][0]["temp_max"], 25.9)
         self.assertIn("легкая одежда", response["cards"][0]["recommendation"])
+        mocked_tours.assert_not_called()
+
+    def test_weather_compare_returns_markdown_without_tour_lookup(self):
+        with patch("ai.views.compare_weather") as mocked_compare, patch("ai.views.get_available_tours") as mocked_tours:
+            mocked_compare.return_value = [
+                {"location": "Ош", "temperature": 26, "weather_description": "Ясно", "wind_speed": 4, "precipitation": 0},
+                {
+                    "location": "Джалал-Абад",
+                    "temperature": 25,
+                    "weather_description": "Облачно",
+                    "wind_speed": 7,
+                    "precipitation": 0.1,
+                },
+                {"location": "Баткен", "temperature": 24, "weather_description": "Ясно", "wind_speed": 8, "precipitation": 0},
+            ]
+
+            response = _generate_ai_response("где самый теплый климат в Кыргызстане?", context={})
+
+        self.assertIn("Сейчас теплее всего", response["answer"])
+        self.assertIn("1. **Ош**", response["answer"])
+        self.assertIn("2. **Джалал-Абад**", response["answer"])
+        self.assertIn("3. **Баткен**", response["answer"])
+        self.assertIn("Обычно самый теплый климат", response["answer"])
+        mocked_tours.assert_not_called()
+
+    def test_english_weather_compare_answer_uses_user_language(self):
+        with patch("ai.views.compare_weather") as mocked_compare, patch("ai.views.get_available_tours") as mocked_tours:
+            mocked_compare.return_value = [
+                {"location": "Ош", "temperature": 26, "weather_description": "Ясно"},
+                {"location": "Джалал-Абад", "temperature": 25, "weather_description": "Облачно"},
+                {"location": "Баткен", "temperature": 24, "weather_description": "Ясно"},
+            ]
+
+            response = _generate_ai_response("Where is the warmest climate in Kyrgyzstan?", context={})
+
+        self.assertIn("Currently the warmest locations", response["answer"])
+        self.assertIn("1. **Osh**", response["answer"])
+        self.assertIn("2. **Jalal-Abad**", response["answer"])
+        self.assertIn("Usually, the warmest climate", response["answer"])
+        mocked_tours.assert_not_called()
+
+    def test_kyrgyz_weather_compare_answer_uses_user_language(self):
+        with patch("ai.views.compare_weather") as mocked_compare, patch("ai.views.get_available_tours") as mocked_tours:
+            mocked_compare.return_value = [
+                {"location": "Ош", "temperature": 26, "weather_description": "Ясно"},
+                {"location": "Джалал-Абад", "temperature": 25, "weather_description": "Облачно"},
+                {"location": "Баткен", "temperature": 24, "weather_description": "Ясно"},
+            ]
+
+            response = _generate_ai_response("Кыргызстанда эң жылуу климат кайсы жерде?", context={})
+
+        self.assertIn("Азыр эң жылуу жерлер", response["answer"])
+        self.assertIn("1. **Ош**", response["answer"])
+        self.assertIn("2. **Жалал-Абад**", response["answer"])
+        self.assertIn("Кыргызстанда эң жылуу климат", response["answer"])
+        mocked_tours.assert_not_called()
+
+    def test_weather_compare_returns_fallback_when_all_locations_fail(self):
+        with patch("ai.views.compare_weather", return_value=[]), patch("ai.views.get_available_tours") as mocked_tours:
+            response = _generate_ai_response("где теплее сейчас?", context={})
+
+        self.assertEqual(
+            response["answer"],
+            "Сейчас не удалось сравнить live-погоду. Обычно теплее всего на юге: Ош, Джалал-Абад, Баткен.",
+        )
         mocked_tours.assert_not_called()

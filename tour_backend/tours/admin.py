@@ -27,37 +27,81 @@ class UserAdmin(admin.ModelAdmin):
 @admin.register(Tour)
 class TourAdmin(admin.ModelAdmin):
     list_display = ("id", "title", "price", "currency", "location", "lat", "lng", "difficulty", "max_people", "created_at")
-    search_fields = ("title", "title_ru", "title_en", "title_ky", "location", "currency")
+    search_fields = (
+        "title",
+        "title_ru",
+        "title_en",
+        "title_ky",
+        "location",
+        "location_ru",
+        "location_en",
+        "location_ky",
+        "currency",
+    )
     list_filter = ("difficulty",)
     readonly_fields = ("created_at",)
-    fields = (
-        "title_ru",
-        "description_ru",
-        "price",
-        "currency",
-        "location",
-        "lat",
-        "lng",
-        "duration",
-        "difficulty",
-        "types",
-        "max_people",
-        "image",
-        "created_at",
+    fieldsets = (
+        (
+            "Основные данные",
+            {
+                "fields": (
+                    "price",
+                    "currency",
+                    "lat",
+                    "lng",
+                    "duration",
+                    "difficulty",
+                    "types",
+                    "max_people",
+                    "image",
+                    "created_at",
+                )
+            },
+        ),
+        (
+            "Русский",
+            {
+                "fields": (
+                    "title_ru",
+                    "description_ru",
+                    "location_ru",
+                )
+            },
+        ),
+        (
+            "English",
+            {
+                "fields": (
+                    "title_en",
+                    "description_en",
+                    "location_en",
+                )
+            },
+        ),
+        (
+            "Кыргызча",
+            {
+                "fields": (
+                    "title_ky",
+                    "description_ky",
+                    "location_ky",
+                )
+            },
+        ),
+        (
+            "Fallback/default",
+            {
+                "fields": (
+                    "title",
+                    "description",
+                    "location",
+                )
+            },
+        ),
     )
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        if "title_ru" in form.base_fields:
-            form.base_fields["title_ru"].label = "Title"
-            form.base_fields["title_ru"].help_text = (
-                "Russian source text. English and Kyrgyz are generated automatically on save."
-            )
-        if "description_ru" in form.base_fields:
-            form.base_fields["description_ru"].label = "Description"
-            form.base_fields["description_ru"].help_text = (
-                "Russian source text. English and Kyrgyz are generated automatically on save."
-            )
         if "lat" in form.base_fields and "lng" in form.base_fields:
             form.base_fields["lat"].help_text = mark_safe(
                 """

@@ -18,15 +18,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 import { getPageContext, initPageActionTracking } from "@/lib/aiContext";
-<<<<<<< HEAD
 import { getNumberLocale } from "@/lib/currency";
-=======
 import { cn } from "@/lib/utils";
 import { AIMessageMarkdown } from "@/components/ai/AIMessageMarkdown";
 import { AITourCards } from "@/components/ai/AITourCards";
 import { AIWeatherCards } from "@/components/ai/AIWeatherCards";
 import type { AICard } from "@/components/ai/types";
->>>>>>> 4b89e51544d3586b6d3857413771ba70b9d4b92a
 
 type MessageRole = "user" | "assistant" | "system";
 
@@ -567,11 +564,6 @@ function ChatSidebar({
             </div>
           </div>
         </div>
-<<<<<<< HEAD
-        <div className="mt-2 flex items-center justify-between rounded-2xl bg-primary px-5 py-4 text-primary-foreground">
-          <span className="text-sm font-medium opacity-80">Estimated total</span>
-          <span className="font-display text-2xl font-semibold">${total.toLocaleString(getNumberLocale())}</span>
-=======
 
         <Button
           type="button"
@@ -645,7 +637,6 @@ function ConversationRow({
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
           <span className="truncate">{formatRelativeTime(conversation.updated_at || conversation.created_at)}</span>
           {conversation.messages_count ? <span>{conversation.messages_count}</span> : null}
->>>>>>> 4b89e51544d3586b6d3857413771ba70b9d4b92a
         </div>
       </div>
       <Button

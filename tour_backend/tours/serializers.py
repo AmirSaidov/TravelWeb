@@ -1,7 +1,6 @@
 from urllib.parse import urljoin
 
 from django.conf import settings
-from django.utils.translation import get_language
 from rest_framework import serializers
 
 from .models import Review, Tour
@@ -41,36 +40,40 @@ def get_tour_image_url(tour: Tour, request=None) -> str:
 class TourSerializer(serializers.ModelSerializer):
     title = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
     currency = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     rating_avg = serializers.FloatField(read_only=True)
     review_count = serializers.IntegerField(read_only=True)
 
-    def _active_language(self) -> str:
-        language = (get_language() or getattr(settings, "LANGUAGE_CODE", "ru") or "ru").lower()
-        return language.split("-")[0]
+    def _requested_language(self) -> str:
+        req = self.context.get("request") if isinstance(self.context, dict) else None
+        if not req:
+            return ""
+        query_params = getattr(req, "query_params", None) or getattr(req, "GET", None)
+        if not query_params:
+            return ""
+        lang = str(query_params.get("lang") or "").strip().lower().split("-")[0]
+        return lang if lang in {"ru", "en", "ky"} else ""
 
-    def _translated_value(self, obj: Tour, field_name: str) -> str:
-        language = self._active_language()
-        fallback_language = "ru"
-        candidates = [
-            f"{field_name}_{language}",
-            f"{field_name}_{fallback_language}",
-            field_name,
-        ]
+    def _localized_value(self, obj: Tour, field_name: str) -> str:
+        lang = self._requested_language()
+        fallback = getattr(obj, field_name, "") or ""
+        if not lang:
+            return str(fallback)
 
-        for candidate in dict.fromkeys(candidates):
-            value = getattr(obj, candidate, None)
-            if value:
-                return str(value)
-        return ""
+        translated = getattr(obj, f"{field_name}_{lang}", "") or ""
+        return str(translated or fallback)
 
     def get_title(self, obj: Tour) -> str:
-        return self._translated_value(obj, "title")
+        return self._localized_value(obj, "title")
 
     def get_description(self, obj: Tour) -> str:
-        return self._translated_value(obj, "description")
+        return self._localized_value(obj, "description")
+
+    def get_location(self, obj: Tour) -> str:
+        return self._localized_value(obj, "location")
     
     def _requested_currency(self) -> str:
         req = self.context.get("request") if isinstance(self.context, dict) else None
