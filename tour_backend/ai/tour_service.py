@@ -28,7 +28,7 @@ TOUR_RECOMMENDATION_KEYWORDS = [
 
 
 DESTINATION_ALIASES = {
-    "bishkek": ["bishkek", "бишкек", "бишкеке"],
+    "bishkek": ["bishkek", "бишкек", "бишкеке", "бишкека", "бишкеком"],
     "osh": ["osh", "osh region", "ош", "оше", "ошская", "ошской", "ошская область"],
     "issyk-kul": [
         "issyk kul",
@@ -89,18 +89,45 @@ DESTINATION_DISPLAY = {
 
 
 ACTIVITY_ALIASES = {
-    "nature": ["nature", "природа", "природу", "ущель", "лес", "водопад", "eco", "эко"],
-    "mountains": ["mountains", "mountain", "горы", "горн", "трек", "trekking", "hiking", "поход"],
-    "lake": ["lake", "озеро", "озера", "иссык", "сон куль", "сон-куль", "коль", "куль"],
-    "culture": ["culture", "cultural", "культура", "культур", "история", "традиц"],
-    "family": ["family", "семья", "семей", "дет", "kids"],
+    "nature": ["nature", "outdoor", "природа", "природу", "природе", "табият", "ущель", "лес", "водопад", "eco", "эко"],
+    "mountains": ["mountains", "mountain", "горы", "гора", "горн", "тоо", "тоого", "трек", "trekking", "hiking", "поход"],
+    "lake": ["lake", "lakes", "озеро", "озера", "озере", "көл", "кол", "иссык", "сон куль", "сон-куль", "коль", "куль"],
+    "city": ["city", "urban", "город", "городу", "городской", "городская", "городские", "city tour", "urban tour"],
+    "culture": ["culture", "cultural", "культура", "культур", "история", "традиц", "музей", "площад", "архитектур"],
+    "family": ["family", "семья", "семей", "дет", "kids", "children", "балдар"],
+    "calm": ["calm", "quiet", "relax", "relaxing", "спокой", "тихий", "отдых", "тынч", "эс алуу", "озеро", "көл"],
+    "extreme": ["extreme", "adventure", "adrenaline", "экстрим", "экстремаль", "адреналин", "сложн", "перевал", "peak", "пик"],
+    "romantic": ["romantic", "couple", "романтик", "пара", "закат", "sunset", "көл", "озеро"],
+}
+
+
+NEARBY_DESTINATION_ALIASES = {
+    "bishkek": [
+        "bishkek",
+        "бишкек",
+        "бишкеке",
+        "ала арча",
+        "ала-арча",
+        "ala archa",
+        "ala-archa",
+        "кегеты",
+        "кегети",
+        "kegety",
+        "belogorka",
+        "белогорка",
+        "чункурчак",
+        "chunkurchak",
+        "чуй",
+        "chuy",
+    ],
 }
 
 
 DIFFICULTY_ALIASES = {
     "easy": ["easy", "легкий", "легкая", "легко", "лёгкий", "лёгкая"],
     "moderate": ["moderate", "medium", "средний", "обычный", "умеренный"],
-    "challenging": ["challenging", "hard", "сложный", "трудный", "активный"],
+    "hard": ["hard", "challenging", "difficult", "тяжелый", "тяжелые", "тяжелая", "тяжёлый", "тяжёлые", "сложный", "сложные", "сложная", "трудный", "экстремальный"],
+    "challenging": ["challenging", "hard", "сложный", "сложные", "трудный", "экстремальный"],
 }
 
 
@@ -222,6 +249,8 @@ def parse_tour_filters(message: str) -> dict[str, Any]:
         filters["travel_style"] = travel_style
     if activity_type:
         filters["activity_type"] = activity_type
+    if activity_type == "city" or difficulty in {"hard", "challenging"}:
+        filters["strict_semantic"] = True
 
     return filters
 
@@ -272,8 +301,23 @@ def _tour_matches_activity(tour: Tour, activity_type: str) -> bool:
     types = getattr(tour, "types", None)
     if not isinstance(types, list):
         types = []
-    type_text = _normalize_text(" ".join(str(item) for item in types))
+    tags = getattr(tour, "tags", None)
+    if not isinstance(tags, list):
+        tags = []
+    type_text = _normalize_text(" ".join(str(item) for item in [*types, *tags]))
     return any(alias in text or alias in type_text for alias in aliases)
+
+
+def _tour_matches_difficulty(tour: Tour, difficulty: str) -> bool:
+    difficulty_text = _normalize_text(str(getattr(tour, "difficulty", "") or ""))
+    aliases = [_normalize_text(item) for item in DIFFICULTY_ALIASES.get(difficulty, [difficulty])]
+    return any(alias and alias in difficulty_text for alias in aliases)
+
+
+def _tour_matches_nearby_destination(tour: Tour, destination: str) -> bool:
+    aliases = NEARBY_DESTINATION_ALIASES.get(destination) or DESTINATION_ALIASES.get(destination, [destination])
+    text = _normalize_text(f"{tour.title} {tour.description} {tour.location}")
+    return any(_normalize_text(alias) in text for alias in aliases)
 
 
 def _tour_url(tour: Tour) -> str:
@@ -363,7 +407,8 @@ def _get_filtered_tours(filters: dict[str, Any] | None = None, limit: int = 40) 
             queryset = queryset.exclude(id__in=safe_exclude_ids)
 
     destination = filters.get("destination")
-    if destination:
+    nearby_destination = bool(filters.get("nearby_destination"))
+    if destination and not nearby_destination:
         queryset = _apply_destination_filter(queryset, str(destination))
 
     max_price = filters.get("max_price")
@@ -374,10 +419,6 @@ def _get_filtered_tours(filters: dict[str, Any] | None = None, limit: int = 40) 
     if duration_days:
         queryset = queryset.filter(duration__lte=duration_days)
 
-    difficulty = filters.get("difficulty")
-    if difficulty:
-        queryset = queryset.filter(difficulty__iexact=str(difficulty))
-
     people_count = filters.get("people_count")
     if people_count:
         queryset = queryset.filter(max_people__gte=people_count)
@@ -387,15 +428,26 @@ def _get_filtered_tours(filters: dict[str, Any] | None = None, limit: int = 40) 
         queryset = queryset.order_by("price", "duration", "id")
     elif travel_style == "comfort":
         queryset = queryset.order_by("-price", "-duration", "id")
+    elif filters.get("calm"):
+        queryset = queryset.order_by("duration", "price", "id")
 
     if destination and filters.get("strict_destination"):
         tours = [tour for tour in queryset if _tour_matches_destination(tour, str(destination))]
     else:
         tours = list(queryset[:limit])
 
+    if destination and nearby_destination:
+        nearby_tours = [tour for tour in tours if _tour_matches_nearby_destination(tour, str(destination))]
+        if nearby_tours:
+            tours = nearby_tours
+
     activity_type = filters.get("activity_type")
     if activity_type:
         tours = [tour for tour in tours if _tour_matches_activity(tour, str(activity_type))]
+
+    difficulty = filters.get("difficulty")
+    if difficulty:
+        tours = [tour for tour in tours if _tour_matches_difficulty(tour, str(difficulty))]
 
     return tours[:limit]
 

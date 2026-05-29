@@ -6,6 +6,8 @@ from typing import Any
 from .tour_service import DESTINATION_ALIASES, parse_tour_filters, resolve_tour_destination
 
 
+TRAVEL_ADVICE_INTENT = "travel_advice"
+
 TOUR_KEYWORDS = [
     "тур",
     "туры",
@@ -42,11 +44,58 @@ TOUR_MORE_KEYWORDS = [
     "дай еще",
     "дай ещё",
     "покажи другие",
+    "а кроме этого",
+    "кроме этого",
+    "что еще",
+    "что ещё",
     "другой вариант",
     "еще тур",
     "ещё тур",
     "more",
     "another",
+]
+
+TRAVEL_ADVICE_KEYWORDS = [
+    "что посоветуешь",
+    "что порекомендуешь",
+    "куда поехать",
+    "куда съездить",
+    "хочу на природу",
+    "хочу на природе",
+    "хочу в горы",
+    "люблю озера",
+    "люблю көл",
+    "хочу спокойный отдых",
+    "спокойный отдых",
+    "хочу экстрим",
+    "экстрим",
+    "еду с детьми",
+    "с детьми",
+    "для детей",
+    "романтическое место",
+    "романтика",
+    "возле бишкека",
+    "рядом с бишкеком",
+    "near bishkek",
+    "around bishkek",
+    "nature near bishkek",
+    "want nature",
+    "want mountains",
+    "i like lakes",
+    "calm trip",
+    "quiet trip",
+    "extreme",
+    "with kids",
+    "family trip",
+    "romantic place",
+    "эмне сунуштайсың",
+    "кайда барса болот",
+    "табиятка баргым келет",
+    "тоого баргым келет",
+    "көлдөрдү жакшы көрөм",
+    "балдар менен",
+    "тынч эс алуу",
+    "романтикалык жер",
 ]
 
 WEATHER_KEYWORDS = [
@@ -116,18 +165,104 @@ WEATHER_COMPARE_KEYWORDS = [
 
 PACKING_KEYWORDS = [
     "что взять",
+    "что мне взять",
     "что надеть",
+    "что мне надеть",
     "как одеться",
+    "что одеть",
+    "что мне одеть",
+    "что мне одеть вечером",
+    "что вечером надеть",
+    "что надеть вечером",
+    "а вечером",
+    "вечером",
+    "а ночью",
+    "ночью",
+    "если вечером",
+    "а если вечером",
+    "а зимой",
+    "а летом",
+    "а детям",
     "одежда",
     "вещи",
     "куртка",
     "обувь",
     "pack",
     "packing",
+    "what to pack",
+    "what to take",
+    "what should i take",
     "wear",
+    "what should i wear",
     "clothes",
     "jacket",
     "shoes",
+]
+
+CONTEXT_FOLLOWUP_KEYWORDS = [
+    "вечером",
+    "а вечером",
+    "что вечером надеть",
+    "что мне одеть вечером",
+    "что надеть вечером",
+    "а если вечером",
+    "если вечером",
+    "ночью",
+    "а ночью",
+    "а детям",
+    "детям",
+    "а зимой",
+    "зимой",
+    "а летом",
+    "летом",
+    "а какой лучше",
+    "какой лучше",
+    "а что посоветуешь",
+    "что посоветуешь",
+    "а кроме этого",
+    "кроме этого",
+    "besides that",
+    "what about evening",
+    "what about kids",
+    "what is better",
+    "what do you recommend",
+]
+
+TRAVEL_FOLLOWUP_KEYWORDS = [
+    "а есть что то спокойнее",
+    "есть что то спокойнее",
+    "что то спокойнее",
+    "спокойнее",
+    "что то легче",
+    "что-то легче",
+    "легче",
+    "полегче",
+    "что то активнее",
+    "что-то активнее",
+    "активнее",
+    "что то подешевле",
+    "что-то подешевле",
+    "подешевле",
+    "дешевле",
+    "дороже",
+    "ближе",
+    "поближе",
+    "другое",
+    "другой",
+    "другие",
+    "еще варианты",
+    "ещё варианты",
+    "а кроме этого",
+    "кроме этого",
+    "calmer",
+    "quieter",
+    "easier",
+    "more active",
+    "cheaper",
+    "more expensive",
+    "closer",
+    "different",
+    "other options",
 ]
 
 BUDGET_KEYWORDS = [
@@ -240,10 +375,16 @@ def _previous_intent(recent_messages=None) -> str | None:
         cards = _message_cards(item)
         if any(isinstance(card, dict) and card.get("type") == "tour" for card in cards):
             return "tour_search"
+        if any(isinstance(card, dict) and card.get("type") == "weather" for card in cards):
+            return "weather"
+        if any(isinstance(card, dict) and card.get("type") == "weather_compare" for card in cards):
+            return "weather_compare"
 
         text = _normalize_text(_message_content(item))
         if not text:
             continue
+        if _has_any(text, TRAVEL_ADVICE_KEYWORDS):
+            return TRAVEL_ADVICE_INTENT
         if _has_any(text, TOUR_KEYWORDS):
             return "tour_search"
         if _has_any(text, BUDGET_KEYWORDS):
@@ -263,7 +404,7 @@ def _previous_destination(recent_messages=None) -> str | None:
         for card in _message_cards(item):
             if not isinstance(card, dict):
                 continue
-            destination = card.get("destination")
+            destination = card.get("destination") or card.get("location")
             if destination:
                 resolved = resolve_tour_destination(str(destination))
                 if resolved:
@@ -289,6 +430,31 @@ def _previous_tour_ids(recent_messages=None) -> list[int]:
             if tour_id not in ids:
                 ids.append(tour_id)
     return ids
+
+
+def _previous_travel_context(recent_messages=None) -> dict[str, Any]:
+    for item in reversed(_recent_items(recent_messages)):
+        role = _message_value(item, "role")
+        if role and role != "user":
+            continue
+
+        content = _message_content(item)
+        text = _normalize_text(content)
+        if not text:
+            continue
+
+        filters = parse_tour_filters(content)
+        destination = resolve_tour_destination(content)
+        nearby_destination = any(word in text for word in ["возле", "рядом", "около", "near", "around", "жакын"])
+        activity_type = filters.get("activity_type")
+        if destination or nearby_destination or activity_type:
+            return {
+                "destination": destination,
+                "activity_type": activity_type,
+                "nearby_destination": nearby_destination,
+            }
+
+    return {}
 
 
 def _location_only(message: str, destination: str | None) -> bool:
@@ -318,12 +484,73 @@ def _requested_limit(message: str) -> int | None:
     return max(1, min(8, int(match.group(1))))
 
 
+def _travel_advice_filters(
+    message: str,
+    destination: str | None,
+    previous_destination: str | None,
+    previous_activity_type: str | None = None,
+) -> dict[str, Any]:
+    filters = parse_tour_filters(message)
+    text = _normalize_text(message)
+    is_travel_followup = _has_any(text, TRAVEL_FOLLOWUP_KEYWORDS) or _has_any(text, CONTEXT_FOLLOWUP_KEYWORDS)
+
+    if not filters.get("destination") and destination:
+        filters["destination"] = destination
+    if not filters.get("destination") and previous_destination and is_travel_followup:
+        filters["destination"] = previous_destination
+
+    if any(word in text for word in ["возле", "рядом", "около", "near", "around", "жакын"]):
+        filters["nearby_destination"] = True
+
+    if any(word in text for word in ["по городу", "городск", "city", "urban"]):
+        filters["activity_type"] = "city"
+        filters["strict_semantic"] = True
+    if any(word in text for word in ["природ", "табият", "nature"]):
+        filters["activity_type"] = "nature"
+    if any(word in text for word in ["гор", "тоого", "тоо", "mountain", "mountains"]):
+        filters["activity_type"] = "mountains"
+    if any(word in text for word in ["озер", "көл", "кол", "lake", "lakes"]):
+        filters["activity_type"] = "lake"
+    if any(word in text for word in ["дет", "балдар", "kids", "family"]):
+        filters["activity_type"] = "family"
+        filters.setdefault("difficulty", "easy")
+    if any(word in text for word in ["спокой", "тынч", "calm", "quiet", "relax"]):
+        filters["calm"] = True
+        current_activity = filters.get("activity_type")
+        filters["activity_type"] = previous_activity_type if current_activity == "calm" and previous_activity_type else current_activity or previous_activity_type or "calm"
+        filters.setdefault("difficulty", "easy")
+    if any(word in text for word in ["легче", "полегче", "easier"]):
+        filters.setdefault("difficulty", "easy")
+    if any(word in text for word in ["активнее", "active", "adventure"]):
+        filters["activity_type"] = "mountains"
+        filters["difficulty"] = "moderate"
+    if any(word in text for word in ["подешевле", "дешевле", "cheaper"]):
+        filters["travel_style"] = "budget"
+    if any(word in text for word in ["дороже", "more expensive"]):
+        filters["travel_style"] = "comfort"
+    if any(word in text for word in ["ближе", "поближе", "closer"]):
+        filters["nearby_destination"] = True
+    if any(word in text for word in ["экстрим", "extreme", "adventure", "адреналин"]):
+        filters["activity_type"] = "extreme"
+        filters["difficulty"] = "hard"
+        filters["strict_semantic"] = True
+    if any(word in text for word in ["тяжел", "тяжёл", "сложн", "трудн", "hard", "difficult", "challenging"]):
+        filters["difficulty"] = "hard"
+        filters["strict_semantic"] = True
+    if any(word in text for word in ["романтик", "romantic"]):
+        filters["activity_type"] = "romantic"
+
+    filters.setdefault("limit", 3)
+    return filters
+
+
 def resolve_intent(message, recent_messages=None, context=None):
     text = _normalize_text(message)
     language = detect_language(message)
     destination = resolve_tour_destination(message)
     previous_intent = _previous_intent(recent_messages)
     previous_destination = _previous_destination(recent_messages)
+    previous_travel_context = _previous_travel_context(recent_messages)
     requested_limit = _requested_limit(message)
     limit_followup = (
         previous_intent == "tour_search"
@@ -334,6 +561,9 @@ def resolve_intent(message, recent_messages=None, context=None):
     explicit_tour = _has_any(text, TOUR_KEYWORDS)
     explicit_budget = _has_any(text, BUDGET_KEYWORDS)
     explicit_packing = _has_any(text, PACKING_KEYWORDS)
+    explicit_travel_advice = _has_any(text, TRAVEL_ADVICE_KEYWORDS)
+    context_followup = _has_any(text, CONTEXT_FOLLOWUP_KEYWORDS)
+    travel_followup = _has_any(text, TRAVEL_FOLLOWUP_KEYWORDS)
     explicit_weather_compare = _has_any(text, WEATHER_COMPARE_KEYWORDS)
     explicit_weather = _has_any(text, WEATHER_KEYWORDS)
 
@@ -357,6 +587,73 @@ def resolve_intent(message, recent_messages=None, context=None):
             "confidence": 0.96,
             "reason": "weather keyword has priority over tour search",
             "priority_match": "weather_keyword",
+        }
+
+    if explicit_budget:
+        if not destination and previous_destination:
+            destination = previous_destination
+        return {
+            "intent": "budget",
+            "language": language,
+            "destination": destination,
+            "filters": {},
+            "confidence": 0.9,
+            "reason": "explicit budget keyword",
+        }
+
+    if explicit_packing:
+        if not destination and previous_destination:
+            destination = previous_destination
+        return {
+            "intent": "packing",
+            "language": language,
+            "destination": destination,
+            "filters": {"inherited_context": bool(previous_destination and not resolve_tour_destination(message))},
+            "confidence": 0.9 if previous_destination else 0.88,
+            "reason": "packing request with recent context" if previous_destination else "explicit packing/clothing keyword",
+            "priority_match": "packing_keyword",
+        }
+
+    if context_followup and previous_intent in {"weather", "packing", "weather_compare"}:
+        destination = destination or previous_destination
+        return {
+            "intent": "packing",
+            "language": language,
+            "destination": destination,
+            "filters": {"inherited_context": True},
+            "confidence": 0.84,
+            "reason": "packing-style follow-up inherits weather context",
+            "priority_match": "context_followup",
+        }
+
+    if explicit_travel_advice or ((context_followup or (travel_followup and not tour_followup)) and previous_intent in {TRAVEL_ADVICE_INTENT, "tour_search"}):
+        travel_destination = (
+            destination
+            or previous_travel_context.get("destination")
+            or previous_destination
+        )
+        filters = _travel_advice_filters(
+            message,
+            destination,
+            travel_destination,
+            previous_activity_type=previous_travel_context.get("activity_type"),
+        )
+        if previous_travel_context.get("nearby_destination") and travel_followup:
+            filters["nearby_destination"] = True
+        destination = filters.get("destination") or destination or travel_destination
+        if destination:
+            filters["destination"] = destination
+        exclude_ids = _previous_tour_ids(recent_messages)
+        if exclude_ids and (context_followup or travel_followup):
+            filters["exclude_ids"] = exclude_ids
+        return {
+            "intent": TRAVEL_ADVICE_INTENT,
+            "language": language,
+            "destination": destination,
+            "filters": filters,
+            "confidence": 0.9,
+            "reason": "travel advisor request analyzed before database lookup",
+            "priority_match": "travel_advice_keyword" if explicit_travel_advice else "context_followup",
         }
 
     if tour_followup and previous_intent == "tour_search":
@@ -400,29 +697,9 @@ def resolve_intent(message, recent_messages=None, context=None):
             "priority_match": "tour_keyword",
         }
 
-    if explicit_budget:
-        return {
-            "intent": "budget",
-            "language": language,
-            "destination": destination,
-            "filters": {},
-            "confidence": 0.9,
-            "reason": "explicit budget keyword",
-        }
-
-    if explicit_packing:
-        return {
-            "intent": "packing",
-            "language": language,
-            "destination": destination,
-            "filters": {},
-            "confidence": 0.88,
-            "reason": "explicit packing/clothing keyword",
-        }
-
-    if _location_only(message, destination) and previous_intent in {"tour_search", "weather", "budget", "packing"}:
+    if _location_only(message, destination) and previous_intent in {"tour_search", TRAVEL_ADVICE_INTENT, "weather", "budget", "packing"}:
         filters = {}
-        if previous_intent == "tour_search":
+        if previous_intent in {"tour_search", TRAVEL_ADVICE_INTENT}:
             filters["destination"] = destination
             filters["strict_destination"] = True
         return {

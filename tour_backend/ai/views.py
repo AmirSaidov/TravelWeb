@@ -1086,6 +1086,142 @@ def _format_tour_cards_answer(cards, message):
     return f"Я нашел {count} подходящих тура:"
 
 
+def _advisor_place_suggestions(filters, language):
+    destination = filters.get("destination")
+    activity = filters.get("activity_type")
+
+    if destination == "bishkek" and activity in {"nature", "mountains", None}:
+        if language == "en":
+            return ["Ala-Archa", "Kegety", "Belogorka"]
+        if language == "ky":
+            return ["Ала-Арча", "Кегети", "Белогорка"]
+        return ["Ала-Арча", "Кегеты", "Белогорка"]
+
+    if activity == "lake":
+        if language == "en":
+            return ["Issyk-Kul", "Son-Kul", "Sary-Chelek"]
+        if language == "ky":
+            return ["Ысык-Көл", "Соң-Көл", "Сары-Челек"]
+        return ["Иссык-Куль", "Сон-Куль", "Сары-Челек"]
+
+    if activity == "extreme":
+        if language == "en":
+            return ["Ala-Archa", "Karakol", "Peak Lenin area"]
+        if language == "ky":
+            return ["Ала-Арча", "Каракол", "Ленин чокусу аймагы"]
+        return ["Ала-Арча", "Каракол", "район Пика Ленина"]
+
+    if language == "en":
+        return ["Ala-Archa", "Issyk-Kul", "Karakol"]
+    if language == "ky":
+        return ["Ала-Арча", "Ысык-Көл", "Каракол"]
+    return ["Ала-Арча", "Иссык-Куль", "Каракол"]
+
+
+def _format_travel_advice_answer(cards, filters, message):
+    language = _message_language(message)
+    activity = filters.get("activity_type")
+    destination = filters.get("destination")
+    nearby = filters.get("nearby_destination")
+    calm = bool(filters.get("calm"))
+    titles = [card.get("title") for card in cards if card.get("title")]
+    first_title = titles[0] if titles else None
+    suggestions = _advisor_place_suggestions(filters, language)
+
+    if language == "en":
+        if calm:
+            return (
+                "Yes, if you want something calmer, I would look at these options:"
+                if cards
+                else "Yes, if you want something calmer, I would look for easy nature routes with a slower pace."
+            )
+        if activity in {"nature", "mountains"} and destination == "bishkek":
+            intro = (
+                f"If you want nature near Bishkek, I would start with **{first_title or suggestions[0]}**. "
+                "It is the easiest first mountain escape: close to the city, flexible for a short walk, and still scenic."
+            )
+        elif activity == "lake":
+            intro = (
+                f"If you like lakes, I would look first at **{first_title or suggestions[0]}**. "
+                "It is usually the clearest fit for a calm scenic trip."
+            )
+        elif activity == "family":
+            intro = (
+                f"For a trip with kids, I would choose something easy and predictable, like **{first_title or suggestions[0]}**."
+            )
+        elif activity == "extreme":
+            intro = (
+                f"For a more active trip, I would look at **{first_title or suggestions[0]}** first. "
+                "Choose it if you are ready for longer walks, altitude, or a more demanding route."
+            )
+        else:
+            intro = f"I would start with **{first_title or suggestions[0]}** and then compare it with a couple of nearby options."
+
+        if len(suggestions) > 1:
+            intro = f"{intro}\n\nAlso worth considering: {', '.join(f'**{item}**' for item in suggestions[1:])}."
+        return f"{intro}\n\nHere are the best matching tours:" if cards else f"{intro}\n\nI do not see matching tour cards on the site right now."
+
+    if language == "ky":
+        if calm:
+            return (
+                "Ооба, тынчыраак вариант кааласаңыз, мен буларды карамакмын:"
+                if cards
+                else "Ооба, тынчыраак вариант кааласаңыз, жеңил жана жай темптеги табият маршруттарын карамакмын."
+            )
+        if activity in {"nature", "mountains"} and destination == "bishkek":
+            intro = (
+                f"Бишкектин жанында табиятка чыккыңыз келсе, мен **{first_title or suggestions[0]}** менен баштамакмын. "
+                "Бул биринчи тоо эс алуусу үчүн ыңгайлуу: шаарга жакын, маршрутту кыска кылса болот, көрүнүшү да жакшы."
+            )
+        elif activity == "lake":
+            intro = f"Көлдөр жакса, алгач **{first_title or suggestions[0]}** жагын карамакмын. Бул тынч эс алуу үчүн жакшы вариант."
+        elif activity == "family":
+            intro = f"Балдар менен барсаңыз, жеңил жана алдын ала түшүнүктүү маршрут жакшы. Мен **{first_title or suggestions[0]}** карамакмын."
+        elif activity == "extreme":
+            intro = f"Активдүү эс алуу үчүн **{first_title or suggestions[0]}** жакшы башталыш болот. Маршрут татаалыраак болушу мүмкүн."
+        else:
+            intro = f"Мен **{first_title or suggestions[0]}** менен баштап, анан дагы 1-2 вариантты салыштырмакмын."
+
+        if len(suggestions) > 1:
+            intro = f"{intro}\n\nДагы караса болот: {', '.join(f'**{item}**' for item in suggestions[1:])}."
+        return f"{intro}\n\nМына ылайыктуу турлар:" if cards else f"{intro}\n\nАзыр сайтта бул суроого так келген тур карточкалары көрүнбөй жатат."
+
+    if calm:
+        return (
+            "Да, если хотите спокойнее, я бы посмотрел эти варианты:"
+            if cards
+            else "Да, если хотите спокойнее, я бы смотрел легкие природные варианты без плотного городского темпа."
+        )
+
+    if activity in {"nature", "mountains"} and destination == "bishkek":
+        intro = (
+            f"Если хочется выбраться на природу рядом с Бишкеком, я бы начал с **{first_title or suggestions[0]}**. "
+            "Это самый понятный вариант для первого выезда в горы: близко к городу, можно сделать короткую прогулку и не перегружать день."
+        )
+    elif activity == "lake":
+        intro = (
+            f"Если любите озера, я бы сначала посмотрел **{first_title or suggestions[0]}**. "
+            "Это обычно лучший формат для спокойного отдыха с красивыми видами."
+        )
+    elif activity == "family":
+        intro = f"Если едете с детьми, лучше выбрать простой и предсказуемый маршрут. Я бы начал с **{first_title or suggestions[0]}**."
+    elif activity == "extreme":
+        intro = (
+            f"Если хочется экстрима, я бы смотрел в сторону **{first_title or suggestions[0]}**. "
+            "Тут важнее готовность к активному маршруту, перепадам высоты и погоде."
+        )
+    elif activity == "romantic":
+        intro = f"Для романтической поездки я бы выбрал место с красивым видом и спокойным темпом, например **{first_title or suggestions[0]}**."
+    elif nearby:
+        intro = f"Рядом с {_destination_display(destination)} я бы начал с **{first_title or suggestions[0]}** и сравнил еще пару вариантов по дороге и длительности."
+    else:
+        intro = f"Я бы начал с **{first_title or suggestions[0]}** и сравнил его с еще парой вариантов по темпу, дороге и погоде."
+
+    if len(suggestions) > 1:
+        intro = f"{intro}\n\nТакже можно посмотреть: {', '.join(f'**{item}**' for item in suggestions[1:])}."
+    return f"{intro}\n\nВот подходящие туры:" if cards else f"{intro}\n\nНа сайте сейчас не вижу карточек туров, которые точно подходят под этот запрос."
+
+
 def _destination_display(destination):
     return TOUR_DESTINATION_DISPLAY.get(destination, destination or "")
 
@@ -1094,6 +1230,12 @@ def _no_tours_answer(filters, message):
     destination = filters.get("destination")
     display = _destination_display(destination)
     language = _message_language(message)
+    if filters.get("activity_type") == "city" and filters.get("difficulty") in {"hard", "challenging"}:
+        if language == "en":
+            return "I do not have difficult city tours in the database right now. I can show regular city excursions or difficult mountain routes."
+        if language == "ky":
+            return "Азыр базада татаал шаардык турлар жок. Кадимки шаардык экскурсияларды же татаал тоо маршруттарын көрсөтө алам."
+        return "Сейчас у меня нет сложных городских туров в базе. Могу показать обычные городские экскурсии или сложные горные маршруты."
 
     if language == "en":
         if destination and filters.get("exclude_ids"):
@@ -1137,6 +1279,7 @@ def _format_packing_answer(weather_data, message):
     snowfall = weather_data.get("snowfall")
     wind_speed = weather_data.get("wind_speed")
     description = weather_data.get("weather_description") or ""
+    message_text = str(message or "").lower()
 
     wet_amount = max(
         precipitation if isinstance(precipitation, (int, float)) else 0,
@@ -1162,10 +1305,12 @@ def _format_packing_answer(weather_data, message):
             items.append("windproof outer layer")
 
         range_text = f" Daily range: {_format_degree(temp_min)} to {_format_degree(temp_max)}." if temp_min and temp_max else ""
+        focus = "For the evening, add one warmer layer.\n\n" if "evening" in message_text else ""
         return (
             f"### What to wear in {location}\n\n"
             f"Forecast: **{_format_degree(temperature) or 'no temperature data'}**, {description.lower()}.{range_text}\n\n"
-            f"Take: {', '.join(dict.fromkeys(items))}."
+            f"{focus}I would take:\n\n"
+            + "\n".join(f"- {item}" for item in dict.fromkeys(items))
         )
     if language == "ky":
         items = []
@@ -1184,10 +1329,12 @@ def _format_packing_answer(weather_data, message):
             items.append("шамал өткөрбөгөн үстүңкү кийим")
 
         range_text = f" Күндүзгү диапазон: **{_format_degree(temp_min)} - {_format_degree(temp_max)}**." if temp_min and temp_max else ""
+        focus = "Кечинде бир жылуураак катмар кошуңуз.\n\n" if "кеч" in message_text else ""
         return (
             f"### {_localized_location(location, language)} үчүн эмне кийүү керек\n\n"
             f"Прогноз: **{_format_degree(temperature) or 'температура боюнча маалымат жок'}**.{range_text}\n\n"
-            f"Алыңыз: {', '.join(dict.fromkeys(items))}."
+            f"{focus}Мен буларды алмакмын:\n\n"
+            + "\n".join(f"- {item}" for item in dict.fromkeys(items))
         )
 
     items = []
@@ -1206,10 +1353,12 @@ def _format_packing_answer(weather_data, message):
         items.append("ветрозащитный верхний слой")
 
     range_text = f" Диапазон на день: **{_format_degree(temp_min)} - {_format_degree(temp_max)}**." if temp_min and temp_max else ""
+    focus = "Если речь про вечер, добавьте один более теплый слой.\n\n" if "вечер" in message_text else ""
     return (
         f"### Что надеть в {_location_in_ru(location)}\n\n"
         f"По прогнозу: **{_format_degree(temperature) or 'нет данных по температуре'}**, {description.lower()}.{range_text}\n\n"
-        f"Возьмите: {', '.join(dict.fromkeys(items))}."
+        f"{focus}Я бы рекомендовал:\n\n"
+        + "\n".join(f"- {item}" for item in dict.fromkeys(items))
     )
 
 
@@ -1227,6 +1376,14 @@ def _generate_ai_response(message, context, history=None, request=None):
     if intent == "weather_compare":
         weather_items = compare_weather(WEATHER_COMPARE_LOCATIONS)
         return {"answer": _format_weather_compare_answer(weather_items, message)}
+
+    if intent == "travel_advice":
+        cards = get_tour_cards(filters, limit=3, request=request)
+        print("TOUR_IDS:", [card["id"] for card in cards])
+        return {
+            "answer": _format_travel_advice_answer(cards, filters, message),
+            "cards": cards,
+        }
 
     if intent == "tour_search":
         tour_data = get_available_tours(filters)
