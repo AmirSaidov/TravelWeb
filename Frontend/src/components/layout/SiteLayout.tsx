@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { AIAssistant } from "@/components/ai/AIAssistant";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { AuthModal } from "@/components/auth/AuthModal";
@@ -14,7 +13,6 @@ export const SiteLayout = ({
   footerVariant?: "dark" | "light";
 }) => {
   const pathname = usePathname();
-  const showFloatingAssistant = pathname !== "/ai";
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -24,7 +22,6 @@ export const SiteLayout = ({
       </main>
       <Footer variant={footerVariant} />
       <AuthModal />
-      {showFloatingAssistant && <AIAssistant />}
     </div>
   );
 };

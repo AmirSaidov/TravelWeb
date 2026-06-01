@@ -258,7 +258,7 @@ const Dashboard = () => {
                               <div className="font-display text-2xl font-semibold">{b.tour.title}</div>
                               <div className="mt-1 text-sm text-muted-foreground">{b.tour.location}</div>
                             </div>
-                            <div className="shrink-0 rounded-full bg-brand-soft px-3 py-1 text-[11px] font-semibold tracking-wide text-accent-foreground">
+                            <div className="shrink-0 rounded-full bg-brand px-3 py-1 text-[11px] font-semibold tracking-wide text-brand-foreground">
                               {b.status === "confirmed"
                                 ? t("dashboard.statusConfirmed")
                                 : b.status === "pending"
@@ -333,7 +333,7 @@ const Dashboard = () => {
                             <Image src={tr.hero} alt="" fill sizes="320px" className="object-cover" />
                           </div>
                           <div className="p-6 md:p-8">
-                            <div className="absolute right-6 top-6 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold tracking-wide text-primary-foreground">
+                            <div className="absolute right-6 top-6 rounded-full bg-brand px-3 py-1 text-[11px] font-semibold tracking-wide text-brand-foreground">
                               {t("dashboard.statusConfirmed")}
                             </div>
                             <div className="font-display text-2xl font-semibold">{tr.title}</div>
@@ -496,11 +496,11 @@ const Dashboard = () => {
 
               <div className="rounded-3xl border border-border bg-card p-6 shadow-card">
                 <div className="font-display text-lg font-semibold">{t("dashboard.travelFootprint")}</div>
-                <div className="mt-4 overflow-hidden rounded-2xl bg-muted">
+                <div className="relative mt-4 aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
                   {footprintMapUrl ? (
                     <Image src={footprintMapUrl} alt="" fill sizes="520px" className="object-cover" unoptimized />
                   ) : (
-                    <div className="relative aspect-[4/3] bg-[radial-gradient(circle_at_30%_20%,rgba(0,0,0,0.08),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(0,0,0,0.06),transparent_60%)]" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(0,0,0,0.08),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(0,0,0,0.06),transparent_60%)]" />
                   )}
                 </div>
                 <div className="mt-4 flex justify-center">
