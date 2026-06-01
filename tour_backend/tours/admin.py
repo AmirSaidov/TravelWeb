@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.hashers import identify_hasher, make_password
 from django.utils.safestring import mark_safe
 
-from .models import Booking, Payment, Review, Tour, User
+from .models import Booking, Payment, Review, Tour, TourDate, User
 
 
 def _looks_hashed(password: str) -> bool:
@@ -98,6 +98,21 @@ class TourAdmin(admin.ModelAdmin):
                 )
             },
         ),
+        (
+            "Детали тура",
+            {
+                "fields": (
+                    "gallery",
+                    "itinerary",
+                    "included",
+                    "excluded",
+                    "equipment",
+                    "accommodation",
+                    "guide_name",
+                    "guide_bio",
+                )
+            },
+        ),
     )
 
     def get_form(self, request, obj=None, **kwargs):
@@ -147,3 +162,10 @@ class ReviewAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "tour", "rating", "created_at")
     list_filter = ("rating",)
     list_select_related = ("user", "tour")
+
+
+@admin.register(TourDate)
+class TourDateAdmin(admin.ModelAdmin):
+    list_display = ("id", "tour", "start_date", "end_date", "available_spots")
+    list_filter = ("tour",)
+    list_select_related = ("tour",)
