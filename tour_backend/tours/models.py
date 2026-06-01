@@ -41,6 +41,14 @@ class Tour(models.Model):
     max_people = models.IntegerField()
     image = models.ImageField(upload_to="tours/", max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
+    gallery = models.JSONField(default=list, blank=True)
+    itinerary = models.JSONField(default=list, blank=True)
+    included = models.JSONField(default=list, blank=True)
+    excluded = models.JSONField(default=list, blank=True)
+    equipment = models.JSONField(default=list, blank=True)
+    accommodation = models.TextField(blank=True, default='')
+    guide_name = models.CharField(max_length=255, blank=True, default='')
+    guide_bio = models.TextField(blank=True, default='')
 
     def __str__(self):
         return self.title
@@ -88,3 +96,13 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.tour}"
+
+
+class TourDate(models.Model):
+    tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name='dates')
+    start_date = models.DateField()
+    end_date = models.DateField()
+    available_spots = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.tour.title} — {self.start_date}"
