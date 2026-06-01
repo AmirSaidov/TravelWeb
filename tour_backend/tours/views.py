@@ -455,6 +455,21 @@ class TourListView(APIView):
             tours = tours.filter(price__gte=float(price_min))
         if price_max:
             tours = tours.filter(price__lte=float(price_max))
+        duration_min = request.query_params.get('duration_min')
+        duration_max = request.query_params.get('duration_max')
+        ordering = request.query_params.get('ordering')
+
+        if duration_min:
+            tours = tours.filter(duration__gte=int(duration_min))
+        if duration_max:
+            tours = tours.filter(duration__lte=int(duration_max))
+
+        ALLOWED_ORDERING = ['price', '-price', 'rating', '-rating']
+        if ordering in ALLOWED_ORDERING:
+            if ordering in ['rating', '-rating']:
+                tours = tours.order_by(ordering.replace('rating', 'rating_avg'))
+            else:
+                tours = tours.order_by(ordering)
 
         page_str = request.query_params.get('page')
         limit_str = request.query_params.get('limit')
@@ -505,3 +520,25 @@ class CurrencyRatesView(APIView):
                 "rates_to_base": {k: str(v) for k, v in sorted(cfg.rates_to_base.items())},
             }
         )
+class TourSimilarView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, tour_id):
+        try:
+            tour = Tour.objects.get(id=tour_id)
+        except Tour.DoesNotExist:
+            return Response(
+                {'detail': 'Тур не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        similar_tours = Tour.objects.annotate(
+            rating_avg=Coalesce(Avg("review__rating"), 0.0),
+            review_count=Coalesce(Count("review"), 0),
+        ).filter(
+            location=tour.location,
+            difficulty=tour.difficulty,
+        ).exclude(id=tour_id)[:5]
+
+        serializer = TourSerializer(similar_tours, many=True, context={"request": request})
+        return Response(serializer.data)
