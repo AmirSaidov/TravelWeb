@@ -23,13 +23,13 @@ export interface Tour {
   slug: string;
   title: string;
   region: string;
-  location: string; // POI text
+  location: string;
   coordinates?: { lat: number; lng: number } | null;
   description: string;
   longDescription: string;
-  price: number; // per person
+  price: number;
   currency: string;
-  duration: string; // "3 days"
+  duration: string;
   durationDays: number;
   rating: number;
   reviewCount: number;
@@ -43,10 +43,7 @@ export interface Tour {
   host: { name: string; team: string; avatar: string };
   maxGuests: number;
   nights: number;
-  avatar: string;
-  rating: number;
-  date: string;
-  text: string;
+  stays?: Stay[];
 }
 
 export interface Booking {
@@ -58,4 +55,25 @@ export interface Booking {
   total: number;
   status: "upcoming" | "completed" | "cancelled";
   createdAt: string;
+}
+
+export interface Region {
+  id: string;
+  name: string;
+  altitude: number;
+  weatherC: number;
+  toursCount: number;
+  hero: string;
+  coordinates: { lat: number; lng: number };
+  description: string;
+  topTourIds: string[];
+}
+
+export interface Review {
+  id: string;
+  avatar: string;
+  name: string;
+  rating: number;
+  date: string;
+  text: string;
 }
