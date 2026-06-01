@@ -121,6 +121,14 @@ class TourSerializer(serializers.ModelSerializer):
             'image',
             'rating_avg',
             'review_count',
+            'gallery',
+            'itinerary',
+            'included',
+            'excluded',
+            'equipment',
+            'accommodation',
+            'guide_name',
+            'guide_bio',
         ]
 
 
