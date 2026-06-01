@@ -172,6 +172,14 @@ MEDIA_ROOT = os.getenv("DJANGO_MEDIA_ROOT") or str(BASE_DIR / "media")
 # On PythonAnywhere set this to: https://yourusername.pythonanywhere.com
 PUBLIC_BASE_URL = (os.getenv("DJANGO_PUBLIC_BASE_URL") or "").rstrip("/")
 
+# Hugging Face primary LLM provider for the AI assistant.
+HF_API_KEY = os.getenv("HF_API_KEY", "")
+HF_MODEL_ID = os.getenv("HF_MODEL_ID", "meta-llama/Llama-3.3-70B-Instruct")
+HF_API_URL = os.getenv(
+    "HF_API_URL",
+    "https://router.huggingface.co/v1/chat/completions",
+)
+
 # PythonAnywhere runs Django behind a proxy; this keeps absolute URLs HTTPS.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 

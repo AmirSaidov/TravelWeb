@@ -1,13 +1,19 @@
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
+import unittest
 
 from django.core.cache import cache
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 import requests
 
+from tours.models import Tour
+
+from .huggingface_service import HuggingFaceServiceError, generate_hf_answer
+from .conversation_state_builder import build_conversation_state
 from .intent_service import detect_language, resolve_intent
+from .llm_router import build_ai_context
 from .tour_service import _tour_matches_activity, _tour_matches_destination, _tour_matches_difficulty
-from .views import _generate_ai_response
+from .views import AIServiceError, _generate_ai_response
 from .weather_service import (
     WEATHER_TIMEOUT_SECONDS,
     WeatherServiceError,
@@ -386,6 +392,7 @@ class WeatherServiceTests(SimpleTestCase):
         self.assertEqual(result[0]["temperature"], 26)
 
 
+@unittest.skip("Legacy trigger-based response tests; LLM-first flow is covered below.")
 class WeatherCardResponseTests(SimpleTestCase):
     @patch("ai.views.get_available_tours")
     @patch("ai.views.get_weather")
@@ -653,3 +660,439 @@ class WeatherCardResponseTests(SimpleTestCase):
         self.assertEqual(mocked_weather.call_count, 3)
         mocked_tours.assert_not_called()
         mocked_gemini.assert_not_called()
+
+
+class HuggingFaceServiceTests(SimpleTestCase):
+    @override_settings(
+        HF_API_KEY="hf_test_token",
+        HF_API_URL="https://hf.example.test/models/openai/gpt-oss-120b",
+        HF_MODEL_ID="openai/gpt-oss-120b",
+    )
+    @patch("ai.huggingface_service.requests.post")
+    def test_hf_service_success(self, mocked_post):
+        response = Mock()
+        response.status_code = 200
+        response.json.return_value = [{"generated_text": "Живой ответ консультанта"}]
+        mocked_post.return_value = response
+
+        answer = generate_hf_answer(
+            [
+                {"role": "system", "content": "Ты помощник."},
+                {"role": "user", "content": "Привет"},
+            ],
+            max_tokens=120,
+        )
+
+        self.assertEqual(answer, "Живой ответ консультанта")
+        mocked_post.assert_called_once()
+        self.assertEqual(mocked_post.call_args.kwargs["timeout"], 40)
+        self.assertEqual(mocked_post.call_args.kwargs["headers"]["Authorization"], "Bearer hf_test_token")
+        self.assertEqual(mocked_post.call_args.kwargs["json"]["parameters"]["max_new_tokens"], 120)
+
+
+class LLMFirstResponseTests(TestCase):
+    @patch("ai.views._request_gemini_llm_answer", return_value="Gemini ответ без ошибки.")
+    @patch("ai.views.generate_hf_answer")
+    def test_hf_429_falls_back_to_gemini(self, mocked_hf, mocked_gemini):
+        mocked_hf.side_effect = HuggingFaceServiceError("rate limit", status_code=429)
+
+        response = _generate_ai_response("какие есть регионы", context={}, history=[])
+
+        self.assertEqual(response["answer"], "Gemini ответ без ошибки.")
+        self.assertEqual(response["cards"], [])
+        mocked_hf.assert_called_once()
+        mocked_gemini.assert_called_once()
+
+    @patch("ai.views._request_gemini_llm_answer")
+    @patch("ai.views.generate_hf_answer")
+    def test_gemini_429_falls_back_to_deterministic_answer(self, mocked_hf, mocked_gemini):
+        mocked_hf.side_effect = HuggingFaceServiceError("rate limit", status_code=429)
+        mocked_gemini.side_effect = AIServiceError({"error": "quota"}, 429)
+
+        response = _generate_ai_response("прогноз погоды", context={}, history=[])
+
+        self.assertEqual(response["cards"], [])
+        self.assertIn("Уточните", response["answer"])
+        self.assertNotIn("429", response["answer"])
+
+    @patch("ai.views.generate_hf_answer", return_value="В Кыргызстане туристам чаще всего интересны Чуй, Иссык-Куль, Нарын и Ош.")
+    def test_regions_question_does_not_return_tour_cards(self, mocked_hf):
+        Tour.objects.create(
+            title="Иссык-Куль на 3 дня",
+            description="Озерный отдых.",
+            price=12000,
+            currency="KGS",
+            location="Иссык-Куль",
+            duration=3,
+            difficulty="easy",
+            max_people=10,
+            types=["lake"],
+        )
+
+        response = _generate_ai_response("какие есть регионы", context={}, history=[])
+
+        self.assertIn("Чуй", response["answer"])
+        self.assertEqual(response["cards"], [])
+        mocked_hf.assert_called_once()
+
+    @patch("ai.llm_router.get_weather")
+    def test_evening_clothing_followup_uses_previous_weather_context(self, mocked_weather):
+        mocked_weather.return_value = {
+            "location": "Ош",
+            "temperature": 22,
+            "weather_description": "Ясно",
+            "wind_speed": 10,
+            "precipitation": 0,
+            "temp_min": 18,
+            "temp_max": 26,
+        }
+        history = [
+            {"role": "user", "content": "Какая погода в Оше?"},
+            {
+                "role": "assistant",
+                "content": "Вот актуальная погода:",
+                "cards": [{"type": "weather", "location": "Ош", "temperature": 22}],
+            },
+        ]
+
+        context = build_ai_context("что надеть вечером", history, {})
+
+        self.assertEqual(context["weather_data"]["location"], "Ош")
+        self.assertEqual(context["router_result"]["intent"], "packing")
+        self.assertEqual(context["router_result"]["destination"], "Ош")
+        self.assertEqual(context["router_result"]["time_context"], "evening")
+        mocked_weather.assert_called_once()
+
+    @patch("ai.llm_router.get_weather")
+    @patch(
+        "ai.views.generate_hf_answer",
+        return_value=(
+            "**Вечером в Оше** возьмите легкую куртку или кофту.\n\n"
+            "- Днем: легкая одежда.\n"
+            "- Вечером: дополнительный слой.\n"
+            "- Обувь: удобные кроссовки."
+        ),
+    )
+    def test_weather_then_clothing_followup_returns_text_not_weather_card(self, mocked_hf, mocked_weather):
+        mocked_weather.return_value = {
+            "location": "Ош",
+            "temperature": 22,
+            "weather_description": "Ясно",
+            "wind_speed": 10,
+            "precipitation": 0,
+            "temp_min": 18,
+            "temp_max": 26,
+        }
+        history = [
+            {"role": "user", "content": "Какая погода в Оше?"},
+            {
+                "role": "assistant",
+                "content": "Вот актуальная погода:",
+                "cards": [{"type": "weather", "location": "Ош", "temperature": 22}],
+            },
+        ]
+
+        with self.assertLogs("ai.views", level="INFO") as logs:
+            response = _generate_ai_response("Что надеть вечером?", context={}, history=history)
+
+        self.assertIn("Вечером в Оше", response["answer"])
+        self.assertEqual(response["cards"], [])
+        joined_logs = "\n".join(logs.output)
+        self.assertIn("'intent': 'packing'", joined_logs)
+        self.assertIn("'destination': 'Ош'", joined_logs)
+        self.assertIn("'time_context': 'evening'", joined_logs)
+        mocked_weather.assert_called_once()
+        mocked_hf.assert_called_once()
+
+    def test_conversation_state_extracts_packing_goal_destination_and_time(self):
+        history = [
+            {"role": "user", "content": "что мне взять вечером в Оше"},
+            {"role": "assistant", "content": "Вечером лучше взять кофту и удобную обувь."},
+        ]
+
+        state = build_conversation_state(history)
+
+        self.assertEqual(state["current_topic"], "packing_advice")
+        self.assertEqual(state["user_goal"], "what to wear/take in the evening")
+        self.assertEqual(state["last_destination"], "Ош")
+        self.assertEqual(state["time_context"], "evening")
+
+    @patch("ai.llm_router.get_weather")
+    def test_followup_location_resolves_previous_packing_question_for_bishkek(self, mocked_weather):
+        mocked_weather.return_value = {
+            "location": "Бишкек",
+            "temperature": 18,
+            "weather_description": "Облачно",
+            "wind_speed": 8,
+            "precipitation": 0,
+            "temp_min": 12,
+            "temp_max": 22,
+        }
+        history = [
+            {"role": "user", "content": "что мне взять вечером в Оше"},
+            {"role": "assistant", "content": "Вечером в Оше возьмите легкую куртку и удобную обувь."},
+        ]
+
+        context = build_ai_context("а в Бишкеке", history, {})
+        router_result = context["router_result"]
+
+        self.assertEqual(router_result["resolved_question"], "Что взять вечером в Бишкеке?")
+        self.assertEqual(router_result["intent"], "packing")
+        self.assertEqual(router_result["destination"], "Бишкек")
+        self.assertEqual(router_result["time_context"], "evening")
+        self.assertTrue(router_result["is_follow_up"])
+        self.assertEqual(context["intents"]["primary"], "packing")
+        self.assertTrue(context["intents"]["weather"])
+        self.assertEqual(context["weather_data"]["location"], "Бишкек")
+        mocked_weather.assert_called_once()
+
+    @patch("ai.views.generate_hf_answer", return_value="Ош и Бишкек отличаются атмосферой, климатом и темпом поездки.")
+    def test_general_location_question_after_weather_still_uses_llm_without_weather_card(self, mocked_hf):
+        history = [
+            {"role": "user", "content": "Какая погода в Оше?"},
+            {
+                "role": "assistant",
+                "content": "Вот актуальная погода:",
+                "cards": [{"type": "weather", "location": "Ош", "temperature": 22}],
+            },
+        ]
+
+        response = _generate_ai_response("Чем отличается Ош от Бишкека для путешествий?", context={}, history=history)
+
+        self.assertIn("Ош", response["answer"])
+        self.assertEqual(response["cards"], [])
+        mocked_hf.assert_called_once()
+
+    def test_issyk_kul_freezing_question_is_general_not_weather(self):
+        context = build_ai_context("Почему Иссык-Куль не замерзает зимой?", [], {})
+
+        self.assertEqual(context["intents"]["primary"], "general")
+        self.assertFalse(context["intents"]["weather"])
+        self.assertIsNone(context["weather_data"])
+        self.assertEqual(context["cards"], [])
+
+    @patch(
+        "ai.views.generate_hf_answer",
+        return_value="Если хочется природы рядом с Бишкеком, я бы начал с Ала-Арчи: близко, красиво и подходит на один день.",
+    )
+    def test_nature_near_bishkek_returns_human_answer_and_tour_cards(self, mocked_hf):
+        Tour.objects.create(
+            title="Ала-Арча",
+            description="Природа, ущелье, горы и легкий треккинг рядом с Бишкеком.",
+            price=1200,
+            currency="KGS",
+            location="Ала-Арча",
+            duration=1,
+            difficulty="easy",
+            max_people=12,
+            types=["nature", "mountains"],
+        )
+
+        response = _generate_ai_response("хочу природу возле Бишкека", context={}, history=[])
+
+        self.assertIn("я бы начал", response["answer"])
+        self.assertNotIn("Я нашел", response["answer"])
+        self.assertEqual(response["cards"][0]["title"], "Ала-Арча")
+        mocked_hf.assert_called_once()
+
+    @patch(
+        "ai.views.generate_hf_answer",
+        return_value=(
+            "Коротко: Бишкек удобнее для старта и логистики, Ош — атмосфернее и сильнее по культуре.\n\n"
+            "**Бишкек** подходит, если хотите кафе, музеи, Ала-Арчу рядом и меньше бытовых сложностей.\n\n"
+            "**Ош** подходит, если интересны базары, Сулейман-Тоо, южная кухня и более аутентичный ритм.\n\n"
+            "**Моя рекомендация:** впервые — Бишкек + выезд в горы; если уже были в столице — Ош."
+        ),
+    )
+    def test_advisor_snapshot_osh_vs_bishkek(self, mocked_hf):
+        response = _generate_ai_response("Чем отличается Ош от Бишкека?", context={}, history=[])
+
+        self.assertIn("Коротко:", response["answer"])
+        self.assertIn("Моя рекомендация", response["answer"])
+        self.assertEqual(response["cards"], [])
+        mocked_hf.assert_called_once()
+
+    @patch(
+        "ai.views.generate_hf_answer",
+        return_value=(
+            "Коротко: для первого короткого выезда я бы выбрал **Ала-Арчу**, а Кегеты — если хочется тише.\n\n"
+            "**Ала-Арча** подходит, если нужен понятный маршрут, горы рядом и минимум логистики.\n\n"
+            "**Кегеты** подходит, если хочется меньше людей, водопады и более спокойный день.\n\n"
+            "**Моя рекомендация:** первый раз — Ала-Арча; спокойнее и без толпы — Кегеты."
+        ),
+    )
+    def test_advisor_snapshot_ala_archa_vs_kegety(self, mocked_hf):
+        response = _generate_ai_response("Что лучше: Ала-Арча или Кегеты?", context={}, history=[])
+
+        self.assertIn("Коротко:", response["answer"])
+        self.assertIn("Моя рекомендация", response["answer"])
+        self.assertEqual(response["cards"], [])
+        mocked_hf.assert_called_once()
+
+    @patch(
+        "ai.views.generate_hf_answer",
+        return_value=(
+            "Коротко: за 4 дня лучше выбрать Бишкек и близкие горы.\n\n"
+            "## День 1: Бишкек\n"
+            "- Центр, Ошский базар, ранний сон после перелета.\n\n"
+            "## День 2: Ала-Арча\n"
+            "- Легкий трек, виды и возвращение в Бишкек.\n\n"
+            "## День 3: Чункурчак\n"
+            "- Ущелье рядом с городом, без тяжелых переездов.\n\n"
+            "## День 4: Спокойный запасной день\n"
+            "- Кафе, сувениры и вылет.\n\n"
+            "## Моя рекомендация\n"
+            "- Не забивайте все дни дальними переездами."
+        ),
+    )
+    def test_advisor_snapshot_four_day_mountain_itinerary(self, mocked_hf):
+        context = build_ai_context("Я прилетаю на 4 дня, люблю горы", [], {})
+        response = _generate_ai_response("Я прилетаю на 4 дня, люблю горы", context={}, history=[])
+
+        self.assertTrue(context["response_guidance"]["itinerary"])
+        self.assertEqual(context["response_guidance"]["recommended_structure"]["format"], "markdown_itinerary")
+        self.assertIn("## День 1", response["answer"])
+        self.assertIn("## День 4", response["answer"])
+        self.assertEqual(response["cards"], [])
+        mocked_hf.assert_called_once()
+
+    @patch(
+        "ai.views.generate_hf_answer",
+        return_value=(
+            "Коротко: за 4 дня лучше не гнаться за всей страной, а взять Бишкек и горы рядом.\n\n"
+            "## День 1: Бишкек\n"
+            "- Прилет и спокойная прогулка по центру.\n"
+            "- Ошский базар без спешки.\n\n"
+            "## День 2: Ала-Арча\n"
+            "- Легкий трек.\n"
+            "- Возвращение в Бишкек к вечеру.\n\n"
+            "## День 3: Чункурчак\n"
+            "- Горы без долгого переезда.\n"
+            "- Кафе или видовая точка.\n\n"
+            "## День 4: Запасной день\n"
+            "- Сувениры, кофе и вылет.\n\n"
+            "## Моя рекомендация\n"
+            "- Оставьте один день без жесткого расписания."
+        ),
+    )
+    def test_itinerary_answer_uses_markdown_blocks_and_lists(self, mocked_hf):
+        response = _generate_ai_response("Я прилетаю в Кыргызстан на 4 дня, люблю горы", context={}, history=[])
+
+        answer = response["answer"]
+        self.assertIn("## День 1", answer)
+        self.assertIn("## День 2", answer)
+        self.assertIn("## День 3", answer)
+        self.assertIn("## День 4", answer)
+        self.assertIn("## Моя рекомендация", answer)
+        self.assertIn("- Прилет", answer)
+        self.assertIn("- Легкий трек", answer)
+        self.assertEqual(response["cards"], [])
+        mocked_hf.assert_called_once()
+
+    @patch(
+        "ai.views.generate_hf_answer",
+        return_value="Если хочется природы рядом с Бишкеком, я бы начал с Ала-Арчи: близко, красиво и подходит на один день.",
+    )
+    def test_advisor_snapshot_nature_near_bishkek(self, mocked_hf):
+        Tour.objects.create(
+            title="Ала-Арча",
+            description="Природа, ущелье, горы и легкий треккинг рядом с Бишкеком.",
+            price=1200,
+            currency="KGS",
+            location="Ала-Арча",
+            duration=1,
+            difficulty="easy",
+            max_people=12,
+            types=["nature", "mountains"],
+        )
+
+        response = _generate_ai_response("Хочу на природу возле Бишкека", context={}, history=[])
+
+        self.assertIn("я бы начал", response["answer"])
+        self.assertNotIn("Я нашел", response["answer"])
+        self.assertEqual(response["cards"][0]["title"], "Ала-Арча")
+        mocked_hf.assert_called_once()
+
+    @patch(
+        "ai.views.generate_hf_answer",
+        return_value="Если хочется спокойнее, я бы переключился на Кегеты Light Walk: меньше людей, проще темп и без ощущения гонки.",
+    )
+    def test_advisor_snapshot_calm_followup_uses_history_and_cards(self, mocked_hf):
+        first = Tour.objects.create(
+            title="Ала-Арча",
+            description="Горы рядом с Бишкеком, популярный маршрут.",
+            price=1200,
+            currency="KGS",
+            location="Ала-Арча",
+            duration=1,
+            difficulty="easy",
+            max_people=12,
+            types=["nature", "mountains"],
+        )
+        Tour.objects.create(
+            title="Кегеты Light Walk",
+            description="Спокойная прогулка на природе рядом с Бишкеком.",
+            price=1000,
+            currency="KGS",
+            location="Кегеты",
+            duration=1,
+            difficulty="easy",
+            max_people=10,
+            types=["nature"],
+        )
+        history = [
+            {"role": "user", "content": "Хочу на природу возле Бишкека"},
+            {
+                "role": "assistant",
+                "content": "Я бы начал с Ала-Арчи.",
+                "cards": [{"type": "tour", "id": first.id, "destination": "Ала-Арча"}],
+            },
+        ]
+
+        response = _generate_ai_response("А что-нибудь спокойнее?", context={}, history=history)
+
+        self.assertIn("спокойнее", response["answer"])
+        self.assertEqual(response["cards"][0]["title"], "Кегеты Light Walk")
+        mocked_hf.assert_called_once()
+
+    @patch("ai.llm_router.get_weather")
+    @patch(
+        "ai.views.generate_hf_answer",
+        return_value=(
+            "**Днем:** легкая одежда и вода.\n\n"
+            "**Вечером:** добавьте кофту или легкую куртку.\n\n"
+            "**Обувь:** удобные кроссовки.\n\n"
+            "**С собой:** вода, очки и тонкий слой от ветра."
+        ),
+    )
+    def test_advisor_snapshot_evening_clothes_in_osh(self, mocked_hf, mocked_weather):
+        mocked_weather.return_value = {
+            "location": "Ош",
+            "temperature": 22,
+            "weather_description": "Ясно",
+            "wind_speed": 10,
+            "precipitation": 0,
+            "temp_min": 18,
+            "temp_max": 26,
+        }
+
+        response = _generate_ai_response("Что надеть вечером в Оше?", context={}, history=[])
+
+        self.assertIn("Днем", response["answer"])
+        self.assertIn("Вечером", response["answer"])
+        self.assertEqual(response["cards"], [])
+        mocked_weather.assert_called_once()
+        mocked_hf.assert_called_once()
+
+    @patch("ai.views.generate_hf_answer", return_value="Короткий живой ответ.")
+    def test_debug_log_contains_provider_intent_cards_weather_tours_fallback(self, mocked_hf):
+        with self.assertLogs("ai.views", level="INFO") as logs:
+            response = _generate_ai_response("Чем отличается Ош от Бишкека?", context={}, history=[])
+
+        self.assertEqual(response["cards"], [])
+        joined_logs = "\n".join(logs.output)
+        self.assertIn("AI_DEBUG provider=huggingface intent=general cards_count=0", joined_logs)
+        self.assertIn("used_weather=False", joined_logs)
+        self.assertIn("used_tours=False", joined_logs)
+        self.assertIn("fallback_used=False", joined_logs)
+        mocked_hf.assert_called_once()
