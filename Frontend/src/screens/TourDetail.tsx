@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Share2, Heart, MapPin, Mountain, Tent, Utensils, Check, Star, Copy, Link2, Send } from "lucide-react";
+import { Share2, Heart, MapPin, Mountain, Tent, Utensils, Check, Star, Copy, Link2, Send, BedDouble } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, format, parseISO } from "date-fns";
 import { enUS, ru } from "date-fns/locale";
@@ -11,6 +11,7 @@ import { bookingApi, reviewsApi, toursApi } from "@/lib/api";
 import { geocodePlace } from "@/lib/mapboxGeocoding";
 import { RatingStars } from "@/components/ui-bits/RatingStars";
 import { Button } from "@/components/ui/button";
+import { StayCard } from "@/components/ui-bits/StayCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -457,6 +458,18 @@ const TourDetail = () => {
               ))}
             </ul>
           </div>
+
+          {/* Stays */}
+          {tour.stays && tour.stays.length > 0 && (
+            <div className="border-t border-border py-6">
+              <h2 className="font-display text-xl font-semibold">Где вы будете останавливаться</h2>
+              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                {tour.stays.map((stay: any) => (
+                  <StayCard key={stay.id} stay={stay} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Reviews */}
           <div className="border-t border-border py-6">

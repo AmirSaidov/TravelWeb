@@ -18,6 +18,34 @@ class User(models.Model):
         return self.name
 
 
+class Stay(models.Model):
+    title = models.CharField(max_length=255)
+    title_ru = models.CharField(max_length=255, blank=True, default="")
+    title_en = models.CharField(max_length=255, blank=True, default="")
+    title_ky = models.CharField(max_length=255, blank=True, default="")
+    slug = models.SlugField(max_length=255, unique=True)
+    location = models.CharField(max_length=255)
+    location_ru = models.CharField(max_length=255, blank=True, default="")
+    location_en = models.CharField(max_length=255, blank=True, default="")
+    location_ky = models.CharField(max_length=255, blank=True, default="")
+    region = models.CharField(max_length=255)
+    region_ru = models.CharField(max_length=255, blank=True, default="")
+    region_en = models.CharField(max_length=255, blank=True, default="")
+    region_ky = models.CharField(max_length=255, blank=True, default="")
+    image = models.ImageField(upload_to="stays/", max_length=500, blank=True, null=True)
+    badge = models.CharField(max_length=50, blank=True, default="")
+    rating = models.FloatField(default=0.0)
+    review_count = models.IntegerField(default=0)
+    price_per_night = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=8, default="USD")
+    amenities = models.JSONField(default=list, blank=True)
+    type = models.CharField(max_length=50, default="hotel")
+    max_guests = models.IntegerField(default=2)
+
+    def __str__(self):
+        return self.title
+
+
 class Tour(models.Model):
     title = models.CharField(max_length=255)
     title_ru = models.CharField(max_length=255, blank=True, default="")
@@ -49,6 +77,7 @@ class Tour(models.Model):
     accommodation = models.TextField(blank=True, default='')
     guide_name = models.CharField(max_length=255, blank=True, default='')
     guide_bio = models.TextField(blank=True, default='')
+    stays = models.ManyToManyField(Stay, blank=True, related_name="tours")
 
     def __str__(self):
         return self.title

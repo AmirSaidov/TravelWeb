@@ -19,6 +19,7 @@ type ApiTour = {
   image: string;
   rating_avg?: number | null;
   review_count?: number | null;
+  stays?: any[];
 };
 
 type ApiUser = { id: number; name: string; email: string; created_at?: string | null };
@@ -74,6 +75,7 @@ const mapApiTour = (t: ApiTour, fallbackCurrency?: string | null): Tour => {
     host: { name: "", team: "", avatar: image },
     maxGuests: t.max_people,
     nights: Math.max(0, t.duration - 1),
+    stays: t.stays || [],
   };
 };
 
@@ -129,6 +131,14 @@ export const toursApi = {
     // Fallback: scan the first page of results (backward compatibility for old slugs).
     const all = await this.getTours(currency);
     return all.find((t) => t.slug === raw || t.slug.replace(/^\d+-/, "") === raw) ?? null;
+  },
+};
+
+export const staysApi = {
+  async getStays(currency?: string) {
+    const cur = normalizeCurrency(currency) || getPreferredCurrency();
+    const { data } = await api.get<any[]>("/stays/", { params: { currency: cur } });
+    return data;
   },
 };
 

@@ -1,0 +1,119 @@
+import Link from "next/link";
+import { Heart, MapPin } from "lucide-react";
+import { RatingStars } from "./RatingStars";
+import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/currency";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export type Stay = {
+  id: string;
+  slug: string;
+  title: string;
+  location: string;
+  region: string;
+  hero: string;
+  badge?: string;
+  rating: number;
+  reviewCount: number;
+  pricePerNight: number;
+  currency: string;
+  amenities: string[];
+  type: string;
+  maxGuests: number;
+};
+
+export const StayCard = ({ stay, layout = "vertical" }: { stay: Stay; layout?: "vertical" | "compact" }) => {
+  // Mock save functionality
+  const saved = false;
+
+  return (
+    <Link
+      href={`/stay/${stay.slug}`}
+      className="group block rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <div className="overflow-hidden rounded-3xl bg-card shadow-card ring-1 ring-border/60 transition-[transform,box-shadow] duration-300 will-change-transform [transform:translateZ(0)] hover:-translate-y-0.5 hover:shadow-elevated">
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+          <img
+            src={stay.hero}
+            alt={stay.title}
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+            className="h-full w-full object-cover transition-transform duration-500 [transform:translateZ(0)] group-hover:scale-105"
+          />
+        {stay.badge && (
+          <span className="absolute left-3 top-3 rounded-md bg-gold px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gold-foreground shadow-sm">
+            {stay.badge}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); }}
+          className="group/save absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-surface/90 text-foreground shadow-sm backdrop-blur transition-all duration-300 hover:scale-110 hover:bg-surface active:scale-95"
+          aria-label="Save stay"
+        >
+          {saved && <span className="absolute inset-0 rounded-full bg-destructive/20 animate-ping" />}
+          <Heart className={cn("relative z-10 h-4 w-4 transition-all duration-300 group-hover/save:scale-110", saved && "fill-destructive text-destructive drop-shadow-[0_0_8px_rgba(239,68,68,0.55)]")} />
+        </button>
+        <div className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
+          <MapPin className="h-3 w-3" /> {stay.location}
+        </div>
+      </div>
+
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-display text-base font-semibold leading-snug">{stay.title}</h3>
+            <RatingStars value={stay.rating} />
+          </div>
+          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="capitalize">{stay.type}</span>
+            <span>•</span>
+            <span>Up to {stay.maxGuests} guests</span>
+          </div>
+          <div className="mt-3 flex items-end justify-between">
+            <div>
+              <span className="text-lg font-semibold">{formatMoney(stay.pricePerNight, stay.currency)}</span>
+              <span className="text-xs text-muted-foreground"> / night</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+export const StayCardSkeleton = ({ layout = "vertical" }: { layout?: "vertical" | "compact" }) => {
+  return (
+    <div className="rounded-3xl bg-card shadow-card ring-1 ring-border/60">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-muted">
+        <Skeleton className="h-full w-full rounded-none" />
+        <Skeleton className="absolute left-3 top-3 h-6 w-24 rounded-md" />
+        <Skeleton className="absolute right-3 top-3 h-9 w-9 rounded-full" />
+        <Skeleton className="absolute bottom-3 left-3 h-6 w-28 rounded-full" />
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-3 w-2/5" />
+          </div>
+          <Skeleton className="h-4 w-14 rounded-full" />
+        </div>
+
+        <div className="mt-2 flex items-center gap-3">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+
+        <div className="mt-3 flex items-end justify-between">
+          <div className="space-y-1">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+          {layout === "vertical" && <Skeleton className="h-5 w-24 rounded-full" />}
+        </div>
+      </div>
+    </div>
+  );
+};

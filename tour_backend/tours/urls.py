@@ -15,6 +15,7 @@ from .views import (
     TourListView,
     TourDetailView,
     TourSimilarView,
+    StayListView,
 )
 urlpatterns = [
     path("geo/suggest/", suggest_places, name="geo-suggest"),
@@ -32,4 +33,5 @@ urlpatterns = [
     path('tours/<int:tour_id>/similar/', TourSimilarView.as_view(), name='tour-similar'),
     path("reviews/<int:tour_id>/", ReviewsByTourView.as_view(), name="reviews-by-tour"),
     path("reviews/", ReviewCreateView.as_view(), name="review-create"),
+    path("stays/", StayListView.as_view(), name="stay-list"),
 ]

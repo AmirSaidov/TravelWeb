@@ -1,6 +1,23 @@
 export type Difficulty = "easy" | "moderate" | "challenging";
 export type TourType = "horseback" | "trekking" | "culinary" | "off-road" | "winter" | "cultural" | "eco" | "yurts";
 
+export interface Stay {
+  id: string | number;
+  slug: string;
+  title: string;
+  location: string;
+  region: string;
+  hero: string;
+  badge?: string;
+  rating: number;
+  reviewCount: number;
+  pricePerNight: number;
+  currency: string;
+  amenities: string[];
+  type: string;
+  maxGuests: number;
+}
+
 export interface Tour {
   id: string;
   slug: string;
@@ -26,24 +43,6 @@ export interface Tour {
   host: { name: string; team: string; avatar: string };
   maxGuests: number;
   nights: number;
-}
-
-export interface Region {
-  id: string;
-  name: string;
-  altitude: number;
-  weatherC: number;
-  toursCount: number;
-  hero: string;
-  coordinates: { lat: number; lng: number };
-  description: string;
-  topTourIds: string[];
-}
-
-export interface Review {
-  id: string;
-  tourId: string;
-  author: string;
   avatar: string;
   rating: number;
   date: string;

@@ -9,10 +9,10 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from datetime import timedelta
 
-from .models import Booking, Payment, Review, User, Tour
+from .models import Booking, Payment, Review, User, Tour, Stay
 from .services import booking_service
 
-from .serializers import ReviewSerializer, TourSerializer, get_tour_image_url
+from .serializers import ReviewSerializer, TourSerializer, StaySerializer, get_tour_image_url
 from .auth import create_access_token
 from .currency import convert_money, get_currency_config, normalize_currency, quantize_money
 
@@ -541,4 +541,16 @@ class TourSimilarView(APIView):
         ).exclude(id=tour_id)[:5]
 
         serializer = TourSerializer(similar_tours, many=True, context={"request": request})
+        return Response(serializer.data)
+
+class StayListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        stays = Stay.objects.all()
+        
+        # Optionally, you can add filters here if you want backend filtering later.
+        # But for now, returning all is fine since filtering is mostly on frontend.
+
+        serializer = StaySerializer(stays, many=True, context={"request": request})
         return Response(serializer.data)

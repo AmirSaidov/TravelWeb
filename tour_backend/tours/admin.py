@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.hashers import identify_hasher, make_password
 from django.utils.safestring import mark_safe
 
-from .models import Booking, Payment, Review, Tour, TourDate, User
+from .models import Booking, Payment, Review, Tour, TourDate, User, Stay
 
 
 def _looks_hashed(password: str) -> bool:
@@ -40,6 +40,7 @@ class TourAdmin(admin.ModelAdmin):
     )
     list_filter = ("difficulty",)
     readonly_fields = ("created_at",)
+    filter_horizontal = ("stays",)
     fieldsets = (
         (
             "Основные данные",
@@ -110,6 +111,7 @@ class TourAdmin(admin.ModelAdmin):
                     "accommodation",
                     "guide_name",
                     "guide_bio",
+                    "stays",
                 )
             },
         ),
@@ -169,3 +171,24 @@ class TourDateAdmin(admin.ModelAdmin):
     list_display = ("id", "tour", "start_date", "end_date", "available_spots")
     list_filter = ("tour",)
     list_select_related = ("tour",)
+
+
+@admin.register(Stay)
+class StayAdmin(admin.ModelAdmin):
+    list_display = ("id", "title", "location", "region", "price_per_night", "currency", "type", "max_guests")
+    search_fields = (
+        "title",
+        "title_ru",
+        "title_en",
+        "title_ky",
+        "location",
+        "location_ru",
+        "location_en",
+        "location_ky",
+        "region",
+        "region_ru",
+        "region_en",
+        "region_ky",
+    )
+    prepopulated_fields = {"slug": ("title",)}
+

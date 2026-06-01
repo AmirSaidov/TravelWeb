@@ -49,6 +49,7 @@ export const Header = () => {
 
   const navItems = [
     { href: "/explore", label: t("nav.explore") },
+    { href: "/stays", label: t("search.allStays", { defaultValue: "Stays" }) },
     { href: "/map", label: t("nav.map") },
     { href: "/experiences", label: t("nav.experiences") },
     { href: "/faq", label: t("nav.faq") },
