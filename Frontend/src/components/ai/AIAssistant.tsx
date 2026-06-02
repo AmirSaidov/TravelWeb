@@ -14,6 +14,7 @@ import { getNumberLocale } from "@/lib/currency";
 import { AIMessageMarkdown } from "@/components/ai/AIMessageMarkdown";
 import { AITourCards } from "@/components/ai/AITourCards";
 import { AIWeatherCards } from "@/components/ai/AIWeatherCards";
+import { AIStayCards } from "@/components/ai/AIStayCards";
 
 import type { AICard, AIResponse } from "@/components/ai/types";
 
@@ -23,6 +24,8 @@ interface Msg { id: string; role: "user" | "assistant"; text?: string; cards?: A
 const createId = () => Math.random().toString(36).slice(2);
 
 const initial: Msg[] = [];
+
+const hasWeatherCard = (cards?: AICard[]) => (cards ?? []).some((card) => card.type === "weather");
 
 const toRecentMessages = (items: Msg[]) =>
   items.slice(-8).map((item) => ({
@@ -143,59 +146,64 @@ export const AIAssistant = () => {
 
             {/* Messages */}
             <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-              {messages.map((m) => (
-                <div key={m.id}>
-                  {m.role === "user" ? (
-                    <div className="ml-auto max-w-[88%] space-y-1 text-right sm:max-w-[80%]">
-                      <div className="overflow-hidden rounded-2xl rounded-tr-sm bg-secondary px-4 py-2.5 text-left text-sm leading-6 break-words">{m.text}</div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">JUST NOW</div>
-                    </div>
-                  ) : (
-                    <div className="flex min-w-0 gap-2">
-                      <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-gradient-to-br from-brand to-emerald-700">
-                        <Globe2 className="h-3.5 w-3.5 text-white" />
+              {messages.map((m) => {
+                const weatherCard = hasWeatherCard(m.cards);
+
+                return (
+                  <div key={m.id}>
+                    {m.role === "user" ? (
+                      <div className="ml-auto max-w-[88%] space-y-1 text-right sm:max-w-[80%]">
+                        <div className="overflow-hidden rounded-2xl rounded-tr-sm bg-secondary px-4 py-2.5 text-left text-sm leading-6 break-words">{m.text}</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">JUST NOW</div>
                       </div>
-                      <div className="min-w-0 max-w-[88%] space-y-3">
-                        {m.text && (
-                          <div className="overflow-hidden rounded-2xl rounded-tl-sm bg-muted/60 px-4 py-3">
-                            <AIMessageMarkdown content={m.text} />
-                          </div>
-                        )}
-                        <AIWeatherCards cards={m.cards} />
-                        <AITourCards cards={m.cards} />
-                        {m.timeline && (
-                          <div>
-                            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                              📅 {t("ai.proposed")}
+                    ) : (
+                      <div className="flex min-w-0 gap-2">
+                        <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-gradient-to-br from-brand to-emerald-700">
+                          <Globe2 className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <div className="min-w-0 max-w-[88%] space-y-3">
+                          {m.text && !weatherCard && (
+                            <div className="overflow-hidden rounded-2xl rounded-tl-sm bg-muted/60 px-4 py-3">
+                              <AIMessageMarkdown content={m.text} />
                             </div>
-                            <div className="space-y-2">
-                              {m.timeline.map((d) => (
-                                <div key={d.day} className="flex gap-3 rounded-2xl border border-border bg-card p-3">
-                                  <img src={d.img} alt="" className="h-14 w-14 rounded-lg object-cover" />
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-[11px] font-bold uppercase tracking-wider text-brand">{t("ai.day")} {d.day}</span>
-                                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${d.tag === "Culture" ? "bg-blue-100 text-blue-700" : d.tag === "Nature" ? "bg-brand-soft text-accent-foreground" : "bg-amber-100 text-amber-700"}`}>{d.tag}</span>
-                                    </div>
-                                    <div className="mt-0.5 text-sm font-semibold leading-tight">{d.title}</div>
-                                    <div className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{d.text}</div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            {m.pricePerPerson && (
-                              <div className="mt-2 flex items-center justify-between rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground">
-                                <div className="text-[10px] font-semibold uppercase tracking-wider opacity-70">Estimated for 1 person</div>
-                                <div className="font-display text-lg font-semibold">${m.pricePerPerson}<span className="text-[10px] font-normal opacity-70"> USD total</span></div>
+                          )}
+                          <AIWeatherCards cards={m.cards} />
+                          {!weatherCard && <AITourCards cards={m.cards} />}
+                          {!weatherCard && <AIStayCards cards={m.cards} />}
+                          {m.timeline && (
+                            <div>
+                              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                📅 {t("ai.proposed")}
                               </div>
-                            )}
-                          </div>
-                        )}
+                              <div className="space-y-2">
+                                {m.timeline.map((d) => (
+                                  <div key={d.day} className="flex gap-3 rounded-2xl border border-border bg-card p-3">
+                                    <img src={d.img} alt="" className="h-14 w-14 rounded-lg object-cover" />
+                                    <div className="flex-1">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-brand">{t("ai.day")} {d.day}</span>
+                                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${d.tag === "Culture" ? "bg-blue-100 text-blue-700" : d.tag === "Nature" ? "bg-brand-soft text-accent-foreground" : "bg-amber-100 text-amber-700"}`}>{d.tag}</span>
+                                      </div>
+                                      <div className="mt-0.5 text-sm font-semibold leading-tight">{d.title}</div>
+                                      <div className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{d.text}</div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              {m.pricePerPerson && (
+                                <div className="mt-2 flex items-center justify-between rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground">
+                                  <div className="text-[10px] font-semibold uppercase tracking-wider opacity-70">Estimated for 1 person</div>
+                                  <div className="font-display text-lg font-semibold">${m.pricePerPerson}<span className="text-[10px] font-normal opacity-70"> USD total</span></div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                );
+              })}
               {isLoading && (
                 <div className="flex gap-2">
                   <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-gradient-to-br from-brand to-emerald-700">

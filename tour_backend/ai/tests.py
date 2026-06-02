@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.test import SimpleTestCase, TestCase, override_settings
 import requests
 
-from tours.models import Tour
+from tours.models import Stay, Tour
 
 from .huggingface_service import HuggingFaceServiceError, generate_hf_answer
 from .conversation_state_builder import build_conversation_state
@@ -1096,3 +1096,131 @@ class LLMFirstResponseTests(TestCase):
         self.assertIn("used_tours=False", joined_logs)
         self.assertIn("fallback_used=False", joined_logs)
         mocked_hf.assert_called_once()
+
+    def test_stay_question_loads_stay_data_and_cards(self):
+        Stay.objects.create(
+            title="Bishkek Garden Hotel",
+            slug="bishkek-garden-hotel",
+            location="Бишкек",
+            region="Бишкек",
+            price_per_night=4500,
+            currency="KGS",
+            rating=4.8,
+            review_count=12,
+            amenities=["wifi", "breakfast"],
+            type="hotel",
+            max_guests=2,
+        )
+
+        context = build_ai_context("где остановиться в Бишкеке?", [], {})
+
+        self.assertTrue(context["intents"]["stay"])
+        self.assertFalse(context["intents"]["tour"])
+        self.assertEqual(context["relevant_stays"][0]["title"], "Bishkek Garden Hotel")
+        self.assertEqual(context["cards"][0]["type"], "stay")
+        self.assertEqual(context["cards"][0]["slug"], "bishkek-garden-hotel")
+
+    def test_yurt_question_filters_stays_by_type_and_location(self):
+        Stay.objects.create(
+            title="Issyk-Kul Yurt Camp",
+            slug="issyk-kul-yurt-camp",
+            location="Иссык-Куль",
+            region="Иссык-Куль",
+            price_per_night=3000,
+            currency="KGS",
+            rating=4.7,
+            review_count=8,
+            amenities=["breakfast"],
+            type="yurt",
+            max_guests=4,
+        )
+        Stay.objects.create(
+            title="Bishkek Hotel",
+            slug="bishkek-hotel",
+            location="Бишкек",
+            region="Бишкек",
+            price_per_night=4000,
+            currency="KGS",
+            rating=4.5,
+            review_count=10,
+            amenities=["wifi"],
+            type="hotel",
+            max_guests=2,
+        )
+
+        context = build_ai_context("есть юрты на Иссык-Куле?", [], {})
+
+        self.assertTrue(context["intents"]["stay"])
+        self.assertEqual(context["stay_filters"]["type"], "yurt")
+        self.assertEqual(context["stay_filters"]["location"], "issyk-kul")
+        self.assertEqual([stay["title"] for stay in context["relevant_stays"]], ["Issyk-Kul Yurt Camp"])
+
+    def test_tour_with_stay_returns_tour_data_and_linked_stays(self):
+        stay = Stay.objects.create(
+            title="Mountain Guesthouse",
+            slug="mountain-guesthouse",
+            location="Ала-Арча",
+            region="Чуй",
+            price_per_night=2500,
+            currency="KGS",
+            rating=4.6,
+            review_count=5,
+            amenities=["wifi"],
+            type="guesthouse",
+            max_guests=6,
+        )
+        tour = Tour.objects.create(
+            title="Ала-Арча с ночевкой",
+            description="Тур с проживанием рядом с горами.",
+            price=15000,
+            currency="KGS",
+            location="Ала-Арча",
+            duration=2,
+            difficulty="easy",
+            max_people=8,
+            types=["nature", "mountains"],
+        )
+        tour.stays.add(stay)
+
+        context = build_ai_context("хочу тур с проживанием", [], {})
+
+        self.assertTrue(context["intents"]["tour"])
+        self.assertTrue(context["intents"]["stay"])
+        self.assertTrue(context["intents"]["tour_with_stay"])
+        self.assertEqual(context["relevant_tours"][0]["linked_stays"][0]["title"], "Mountain Guesthouse")
+        self.assertTrue(any(card["type"] == "tour" for card in context["cards"]))
+        self.assertTrue(any(card["type"] == "stay" for card in context["cards"]))
+
+    @patch("ai.llm_router.get_available_tours")
+    def test_hotel_question_does_not_call_tour_service_without_need(self, mocked_tours):
+        Stay.objects.create(
+            title="City Hotel",
+            slug="city-hotel",
+            location="Бишкек",
+            region="Бишкек",
+            price_per_night=5000,
+            currency="KGS",
+            rating=4.4,
+            review_count=3,
+            amenities=["wifi"],
+            type="hotel",
+            max_guests=2,
+        )
+
+        context = build_ai_context("какие есть отели?", [], {})
+
+        self.assertTrue(context["intents"]["stay"])
+        self.assertFalse(context["intents"]["tour"])
+        mocked_tours.assert_not_called()
+
+    @patch("ai.views._request_gemini_llm_answer")
+    @patch("ai.views.generate_hf_answer")
+    def test_no_stays_fallback_does_not_invent_hotels(self, mocked_hf, mocked_gemini):
+        mocked_hf.side_effect = HuggingFaceServiceError("provider failed", status_code=400)
+        mocked_gemini.side_effect = AIServiceError({"error": "quota"}, 429)
+
+        response = _generate_ai_response("где остановиться в Нарыне?", context={}, history=[])
+
+        self.assertEqual(response["cards"], [])
+        self.assertIn("нет подходящих вариантов проживания", response["answer"])
+        self.assertNotIn("Hotel", response["answer"])

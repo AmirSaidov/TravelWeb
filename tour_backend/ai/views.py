@@ -1477,6 +1477,24 @@ def _backend_fallback_response(message, ai_context):
     if ai_context.get("budget_missing_destination"):
         return _budget_destination_required_answer(message)
 
+    if intents.get("stay"):
+        stays = ai_context.get("relevant_stays") if isinstance(ai_context.get("relevant_stays"), list) else []
+        if not stays:
+            return (
+                "В базе сейчас нет подходящих вариантов проживания под этот запрос. "
+                "Могу предложить изменить локацию, тип жилья или бюджет."
+            )
+        first = stays[0]
+        title = first.get("title") or "вариант проживания"
+        location = first.get("location") or first.get("region") or "нужная локация"
+        price = first.get("price_per_night")
+        currency = first.get("currency") or ""
+        price_text = f" от {price} {currency} за ночь" if price not in (None, "") else ""
+        return (
+            f"Я бы начал с **{title}** в локации **{location}**{price_text}. "
+            "Это реальный вариант из базы, поэтому цену и детали лучше сверить на странице проживания."
+        )
+
     if intents.get("tour"):
         filters = ai_context.get("tour_filters") if isinstance(ai_context.get("tour_filters"), dict) else {}
         cards = ai_context.get("cards") if isinstance(ai_context.get("cards"), list) else []

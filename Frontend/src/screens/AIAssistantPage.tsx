@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { AIMessageMarkdown } from "@/components/ai/AIMessageMarkdown";
 import { AITourCards } from "@/components/ai/AITourCards";
 import { AIWeatherCards } from "@/components/ai/AIWeatherCards";
+import { AIStayCards } from "@/components/ai/AIStayCards";
 import type { AICard } from "@/components/ai/types";
 
 type MessageRole = "user" | "assistant" | "system";
@@ -83,6 +84,8 @@ const emptyStarters = [
   "Что надеть в Оше?",
   "Сколько денег взять в Каракол?",
 ];
+
+const hasWeatherCard = (cards?: AICard[]) => (cards ?? []).some((card) => card.type === "weather");
 
 const createTempId = () => `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -659,6 +662,7 @@ function ConversationRow({
 
 function ChatMessageBubble({ message }: { message: AIChatMessage }) {
   const isUser = message.role === "user";
+  const weatherCard = hasWeatherCard(message.cards);
 
   return (
     <div className={cn("flex w-full animate-fade-in", isUser ? "justify-end" : "justify-start")}>
@@ -673,13 +677,14 @@ function ChatMessageBubble({ message }: { message: AIChatMessage }) {
               <Globe2 className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1 space-y-3">
-              {message.content && (
+              {message.content && !weatherCard && (
                 <div className="rounded-2xl rounded-tl-md border border-border/80 bg-background px-4 py-3 shadow-card">
                   <AIMessageMarkdown content={message.content} />
                 </div>
               )}
               <AIWeatherCards cards={message.cards} />
-              <AITourCards cards={message.cards} />
+              {!weatherCard && <AITourCards cards={message.cards} />}
+              {!weatherCard && <AIStayCards cards={message.cards} />}
             </div>
           </div>
         )}
