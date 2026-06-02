@@ -24,7 +24,26 @@ export type WeatherCard = {
   recommendation?: string;
 };
 
-export type AICard = TourCard | WeatherCard;
+export type StayCard = {
+  type: "stay";
+  id: number;
+  slug?: string;
+  title: string;
+  location?: string;
+  region?: string;
+  price_per_night?: number | string | null;
+  currency?: string;
+  rating?: number | string | null;
+  review_count?: number | string | null;
+  amenities?: string[];
+  stay_type?: string;
+  max_guests?: number | string | null;
+  hero?: string | null;
+  image?: string | null;
+  url?: string;
+};
+
+export type AICard = TourCard | WeatherCard | StayCard;
 
 export type AIResponse = {
   answer: string;

@@ -374,6 +374,30 @@ def _tour_to_dict(tour: Tour) -> dict[str, Any]:
     types = getattr(tour, "types", None)
     if not isinstance(types, list):
         types = []
+    linked_stays = []
+    try:
+        stays_manager = getattr(tour, "stays", None)
+        if stays_manager is not None:
+            for stay in stays_manager.all()[:5]:
+                linked_stays.append(
+                    {
+                        "id": stay.id,
+                        "slug": stay.slug,
+                        "title": stay.title,
+                        "location": stay.location,
+                        "region": stay.region,
+                        "price_per_night": _format_price(stay.price_per_night),
+                        "currency": (getattr(stay, "currency", "") or "USD").upper(),
+                        "rating": stay.rating,
+                        "review_count": stay.review_count,
+                        "type": stay.type,
+                        "stay_type": stay.type,
+                        "max_guests": stay.max_guests,
+                        "url": f"/stays/{stay.slug}",
+                    }
+                )
+    except Exception:
+        linked_stays = []
 
     return {
         "id": tour.id,
@@ -387,6 +411,7 @@ def _tour_to_dict(tour: Tour) -> dict[str, Any]:
         "included": "",
         "max_people": tour.max_people,
         "activity_types": types,
+        "linked_stays": linked_stays,
         "url": _tour_url(tour),
     }
 
