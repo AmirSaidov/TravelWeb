@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { i18nResources } from "./index";
+import { resources as i18nResources } from "./resources";
 
 export function getLangFromCookies(): "en" | "ru" | "kg" {
   const lang = cookies().get("lang")?.value || "ru";
