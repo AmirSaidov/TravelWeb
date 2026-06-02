@@ -71,11 +71,24 @@ const Stays = () => {
     queryFn: () => staysApi.getStays(currency),
   });
 
+  const priceBounds = useMemo(() => {
+    if (!serverStays.length) return [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX] as [number, number];
+    const prices = serverStays
+      .map((stay) => Number(stay.pricePerNight))
+      .filter((value) => Number.isFinite(value));
+    if (!prices.length) return [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX] as [number, number];
+    const min = Math.max(DEFAULT_PRICE_MIN, Math.floor(Math.min(...prices) / DEFAULT_PRICE_STEP) * DEFAULT_PRICE_STEP);
+    const max = Math.max(
+      DEFAULT_PRICE_MAX,
+      Math.ceil(Math.max(...prices) / DEFAULT_PRICE_STEP) * DEFAULT_PRICE_STEP
+    );
+    return [min, max] as [number, number];
+  }, [serverStays]);
+
   const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
   const snap = (n: number, step: number) => Math.round(n / step) * step;
   const setPriceSafe = (nextMin: number, nextMax: number) => {
-    const min = DEFAULT_PRICE_MIN;
-    const max = DEFAULT_PRICE_MAX;
+    const [min, max] = priceBounds;
     const step = DEFAULT_PRICE_STEP;
     const a = snap(clamp(Number(nextMin), min, max), step);
     const b = snap(clamp(Number(nextMax), min, max), step);
@@ -85,20 +98,25 @@ const Stays = () => {
   };
 
   useEffect(() => {
+    setPrice(priceBounds);
+  }, [priceBounds]);
+
+  useEffect(() => {
     setMinText(String(price[0]));
     setMaxText(String(price[1]));
-  }, [price[0], price[1]]);
+  }, [price]);
 
   const filtered = useMemo(() => {
     return serverStays.filter((stay) => {
       if (q && !`${stay.title} ${stay.location} ${stay.region}`.toLowerCase().includes(q.toLowerCase())) return false;
-      if (stay.pricePerNight < price[0] || stay.pricePerNight > price[1]) return false;
+      const stayPrice = Number(stay.pricePerNight);
+      if (stayPrice < price[0] || stayPrice > price[1]) return false;
       if (initialGuests > 0 && stay.maxGuests < initialGuests) return false;
       if (types.length && !types.includes(stay.type)) return false;
       if (amenities.length && !amenities.every(a => stay.amenities.includes(a))) return false;
       return true;
     });
-  }, [q, price, types, amenities, initialGuests]);
+  }, [serverStays, q, price, types, amenities, initialGuests]);
 
   const sorted = useMemo(() => {
     const list = [...filtered];
