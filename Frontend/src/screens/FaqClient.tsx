@@ -17,8 +17,8 @@ export function FaqClient({ items, searchPlaceholder, noResultsText }: { items: 
   }, [items, q]);
 
   return (
-    <>
-      <div className="relative w-full shrink-0 md:w-[320px]">
+    <section className="flex w-full min-w-0 flex-col gap-6">
+      <div className="relative w-full">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground/60" />
         <Input
           value={q}
@@ -28,7 +28,7 @@ export function FaqClient({ items, searchPlaceholder, noResultsText }: { items: 
         />
       </div>
 
-      <div className="mt-10 mx-auto w-full max-w-3xl">
+      <div className="w-full min-w-0">
         {filtered.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
             {noResultsText}
@@ -36,7 +36,11 @@ export function FaqClient({ items, searchPlaceholder, noResultsText }: { items: 
         ) : (
           <Accordion type="single" collapsible className="space-y-4">
             {filtered.map((it) => (
-              <AccordionItem key={it.id} value={it.id} className="rounded-2xl border border-border bg-card px-6 shadow-sm transition-all hover:shadow-md data-[state=open]:shadow-md">
+              <AccordionItem
+                key={it.id}
+                value={it.id}
+                className="overflow-hidden rounded-2xl border border-border bg-card px-6 shadow-sm transition-all hover:shadow-md data-[state=open]:shadow-md"
+              >
                 <AccordionTrigger className="py-5 text-left text-[17px] font-semibold hover:no-underline hover:text-primary">
                   {it.q}
                 </AccordionTrigger>
@@ -48,6 +52,6 @@ export function FaqClient({ items, searchPlaceholder, noResultsText }: { items: 
           </Accordion>
         )}
       </div>
-    </>
+    </section>
   );
 }

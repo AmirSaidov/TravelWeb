@@ -13,18 +13,21 @@ const Faq = () => {
   ];
 
   return (
-    <div className="container-page py-10">
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div className="max-w-xl">
+    <div className="container-page py-10 sm:py-12 lg:py-14">
+      <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:items-start">
+        <div className="max-w-xl space-y-4">
           <h1 className="font-display text-4xl font-semibold leading-tight sm:text-5xl">{t("faq.title")}</h1>
-          <p className="mt-4 text-base text-muted-foreground">{t("faq.subtitle")}</p>
+          <p className="text-base text-muted-foreground">{t("faq.subtitle")}</p>
         </div>
 
-        <FaqClient items={items} searchPlaceholder={t("faq.searchP")} noResultsText={t("faq.noResults")} />
+        <FaqClient
+          items={items}
+          searchPlaceholder={t("faq.searchP")}
+          noResultsText={t("faq.noResults")}
+        />
       </div>
     </div>
   );
 };
 
 export default Faq;
-
