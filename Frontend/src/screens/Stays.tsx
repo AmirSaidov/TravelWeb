@@ -17,6 +17,7 @@ const DEFAULT_PRICE_MIN = 0;
 const DEFAULT_PRICE_MAX = 500;
 const DEFAULT_PRICE_STEP = 10;
 const PAGE_SIZE = 20;
+const EMPTY_STAYS: Stay[] = [];
 
 
 
@@ -66,10 +67,11 @@ const Stays = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const currencyLabel = String(currency || "USD").toUpperCase();
 
-  const { data: serverStays = [], isLoading } = useQuery({
+  const { data: serverStaysData, isLoading } = useQuery({
     queryKey: ["stays", currency],
     queryFn: () => staysApi.getStays(currency),
   });
+  const serverStays = serverStaysData ?? EMPTY_STAYS;
 
   const priceBounds = useMemo(() => {
     if (!serverStays.length) return [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX] as [number, number];
@@ -98,7 +100,9 @@ const Stays = () => {
   };
 
   useEffect(() => {
-    setPrice(priceBounds);
+    setPrice((current) =>
+      current[0] === priceBounds[0] && current[1] === priceBounds[1] ? current : priceBounds
+    );
   }, [priceBounds]);
 
   useEffect(() => {
